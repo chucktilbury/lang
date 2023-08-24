@@ -1,0 +1,10 @@
+module the_module_name (exec)
+
+namespace some_name {
+    class flarp (asd.wer) {
+    }
+}
+import some.darn.Xtring
+
+PUBLIC CLASS a_dumb_name_123 {
+}

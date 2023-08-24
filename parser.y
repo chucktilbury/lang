@@ -80,37 +80,37 @@ module
     /*
         This is a comment that is not a hint:.
     */
-module_type /* hint: combine_all terminals_only */
+module_type /* hint: combine_terms */
     : %empty {}
     | EXEC {}
     | STATIC {}
     | DYNAMIC {}
     ;
 
-module_element /* hint: combine_all */
+module_element /* hint: combine_nterms list_element */
     : namespace_definition
     | class_definition
     | import_statement
     ;
 
-module_body /* hint: is_a_list */
+module_body /* hint: is_list */
     : module_element
     | module_body module_element
     ;
 
-scope /* hint: combine_all terminals_only */
+scope /* hint: combine_terms*/
     : %empty { printf("scope is PRIVATE\n"); }
     | PUBLIC { printf("scope is PUBLIC\n"); }
     | PRIVATE { printf("scope is PRIVATE\n"); }
     | PROTECTED { printf("scope is PROTECTED\n"); }
     ;
 
-compound_symbol /* hint: is_a_list */
+compound_symbol /* hint: is_list */
     : compound_symbol_element { printf("compound symbol create\n"); }
     | compound_symbol DOT compound_symbol_element { printf("compound symbol add\n"); }
     ;
 
-compound_symbol_element /* hint: terminals_only */
+compound_symbol_element /* hint: combine_terms list_element */
     : SYMBOL { printf("compound symbol: \"%s\"\n", $1); }
     ;
 
@@ -120,7 +120,12 @@ namespace_definition
         }
     ;
 
-namespace_body /* hint: combine_all */
+namespace_block /* hint: is_list */
+    : namespace_element {}
+    | namespace_block namespace_element {}
+    ;
+
+namespace_element /* hint: combine_nterms list_element */
     : namespace_definition
     | class_definition
     ;

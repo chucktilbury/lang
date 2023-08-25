@@ -48,7 +48,8 @@
 %type <nterm> compound_symbol
 %type <nterm> compound_symbol_element
 %type <nterm> namespace_definition
-%type <nterm> namespace_body
+%type <nterm> namespace_block
+%type <nterm> namespace_element
 %type <nterm> class_definition
 %type <nterm> class_parameters
 %type <nterm> class_block
@@ -115,7 +116,7 @@ compound_symbol_element /* hint: combine_terms list_element */
     ;
 
 namespace_definition
-    : scope NAMESPACE SYMBOL OBLOCK namespace_body CBLOCK {
+    : scope NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {
             printf("namespace definition: \"%s\"\n", $3);
         }
     ;

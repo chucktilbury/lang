@@ -8,27 +8,28 @@ OBJS	=	parser.o \
 			ptrlst.o \
 			ast.o
 
-CARGS	=	-g -Wall -Wextra -Wpedantic
+CARGS	=	-Wall -Wextra -Wpedantic
+DEBUG	=	-g -DENA_TRACE
 EXT	=	-Wno-unused-variable -Wno-sign-compare
 
 all: $(TARGET)
 
 %.o:%.c
-	gcc $(CARGS) -c -o $@ $<
+	gcc $(CARGS) $(DEBUG) -c -o $@ $<
 
 $(TARGET): $(OBJS)
-	gcc $(CARGS) -o $(TARGET) $(OBJS)
+	gcc $(CARGS) $(DEBUG) -o $(TARGET) $(OBJS)
 
-parser.c parser.h: parser.y
+parser.c parser.h: parser.y ast.h
 	bison -tvdo parser.c parser.y
 
 scanner.c: scanner.l
 	flex -io scanner.c scanner.l
 
 scanner.o: scanner.c parser.h
-	gcc $(CARGS) $(EXT) -c -o $@ $<
+	gcc $(CARGS) $(DEBUG) $(EXT) -c -o $@ $<
 
-ast.c ast.h: parser.y gen_ast.py
+ast.c ast.h nterms.txt: parser.y gen_ast.py
 	python3 gen_ast.py
 
 ast.o: ast.c ast.h

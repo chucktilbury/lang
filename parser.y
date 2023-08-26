@@ -6,7 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "str.h"
+#include "ast.h"
 #include "scanner.h"
+
+ast_module_t* ast_module_root = NULL;
 
 %}
 
@@ -75,84 +78,175 @@
 %%
 
 module
-    : MODULE SYMBOL OPAREN module_type CPAREN module_body {}
+    : MODULE SYMBOL OPAREN module_type CPAREN module_body {
+            $$ = (void*)create_module();
+            ((struct _ast_module_t_*)$$)->SYMBOL = $2;
+            ((struct _ast_module_t_*)$$)->module_type = $4;
+            ((struct _ast_module_t_*)$$)->module_body = $6;
+            ast_module_root = $$; // return value from the parser.
+        }
     ;
 
     /*
         This is a comment that is not a hint:.
     */
 module_type /* hint: combine_terms */
-    : %empty {}
-    | EXEC {}
-    | STATIC {}
-    | DYNAMIC {}
+    : %empty {
+            $$ = (void*)create_module_type();
+            ((struct _ast_module_type_t_*)$$)->terms = EXEC;
+        }
+    | EXEC {
+            $$ = (void*)create_module_type();
+            ((struct _ast_module_type_t_*)$$)->terms = $1;
+        }
+    | STATIC {
+            $$ = (void*)create_module_type();
+            ((struct _ast_module_type_t_*)$$)->terms = $1;
+        }
+    | DYNAMIC {
+            $$ = (void*)create_module_type();
+            ((struct _ast_module_type_t_*)$$)->terms = $1;
+        }
     ;
 
 module_element /* hint: combine_nterms list_element */
-    : namespace_definition
-    | class_definition
-    | import_statement
+    : namespace_definition {
+            $$ = (void*)create_module_element();
+           ((struct _ast_module_element_t_*)$$)->nterms = $1;
+           ((struct _ast_module_element_t_*)$$)->next = NULL;
+        }
+    | class_definition {
+            $$ = (void*)create_module_element();
+           ((struct _ast_module_element_t_*)$$)->nterms = $1;
+           ((struct _ast_module_element_t_*)$$)->next = NULL;
+        }
+    | import_statement {
+            $$ = (void*)create_module_element();
+           ((struct _ast_module_element_t_*)$$)->nterms = $1;
+           ((struct _ast_module_element_t_*)$$)->next = NULL;
+        }
     ;
 
 module_body /* hint: is_list */
-    : module_element
-    | module_body module_element
+    : module_element {
+            $$ = (void*)create_module_body();
+           ((struct _ast_module_body_t_*)$$)->first = $1;
+           ((struct _ast_module_body_t_*)$$)->last = $1;
+        }
+    | module_body module_element {
+            add_module_body((struct _ast_module_body_t_*)$$, $2);
+        }
     ;
 
 scope /* hint: combine_terms*/
-    : %empty { printf("scope is PRIVATE\n"); }
-    | PUBLIC { printf("scope is PUBLIC\n"); }
-    | PRIVATE { printf("scope is PRIVATE\n"); }
-    | PROTECTED { printf("scope is PROTECTED\n"); }
+    : %empty {
+            $$ = (void*)create_scope();
+           ((struct _ast_scope_t_*)$$)->terms = PRIVATE;
+        }
+    | PUBLIC {
+            $$ = (void*)create_scope();
+           ((struct _ast_scope_t_*)$$)->terms = $1;
+        }
+    | PRIVATE {
+            $$ = (void*)create_scope();
+           ((struct _ast_scope_t_*)$$)->terms = $1;
+        }
+    | PROTECTED {
+            $$ = (void*)create_scope();
+           ((struct _ast_scope_t_*)$$)->terms = $1;
+        }
     ;
 
 compound_symbol /* hint: is_list */
-    : compound_symbol_element { printf("compound symbol create\n"); }
-    | compound_symbol DOT compound_symbol_element { printf("compound symbol add\n"); }
+    : compound_symbol_element {
+            $$ = (void*)create_compound_symbol();
+           ((struct _ast_compound_symbol_t_*)$$)->first = $1;
+           ((struct _ast_compound_symbol_t_*)$$)->last = $1;
+        }
+    | compound_symbol DOT compound_symbol_element {
+            add_compound_symbol((struct _ast_compound_symbol_t_*)$$, $3);
+        }
     ;
 
 compound_symbol_element /* hint: combine_terms list_element */
-    : SYMBOL { printf("compound symbol: \"%s\"\n", $1); }
-    ;
-
-namespace_definition
-    : scope NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {
-            printf("namespace definition: \"%s\"\n", $3);
-        }
-    ;
-
-namespace_block /* hint: is_list */
-    : namespace_element {}
-    | namespace_block namespace_element {}
-    ;
-
-namespace_element /* hint: combine_nterms list_element */
-    : namespace_definition
-    | class_definition
-    ;
-
-class_definition
-    : scope CLASS SYMBOL class_parameters class_block {
-            printf("class definition: \"%s\"\n", $3);
-        }
-    ;
-
-class_parameters
-    : %empty {}
-    | OPAREN compound_symbol CPAREN {}
-    ;
-
-class_block
-    : OBLOCK CBLOCK {
-            printf("class block\n");
+    : SYMBOL {
+            $$ = (void*)create_compound_symbol_element();
+           ((struct _ast_compound_symbol_element_t_*)$$)->terms = $1;
+           ((struct _ast_compound_symbol_element_t_*)$$)->next = NULL;
         }
     ;
 
 import_statement
     : IMPORT compound_symbol {
-            printf("import statement\n");
+            $$ = (void*)create_import_statement();
+           ((struct _ast_import_statement_t_*)$$)->compound_symbol = $2;
         }
     ;
+
+namespace_definition
+    : scope NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {
+            $$ = (void*)create_namespace_definition();
+           ((struct _ast_namespace_definition_t_*)$$)->SYMBOL = $3;
+           ((struct _ast_namespace_definition_t_*)$$)->scope = $1;
+           ((struct _ast_namespace_definition_t_*)$$)->namespace_block = $5;
+        }
+    ;
+
+namespace_block /* hint: is_list */
+    : namespace_element {
+            $$ = (void*)create_namespace_block();
+           ((struct _ast_namespace_block_t_*)$$)->first = $1;
+           ((struct _ast_namespace_block_t_*)$$)->last = $1;
+        }
+    | namespace_block namespace_element {
+            add_namespace_block((struct _ast_namespace_block_t_*)$$, $2);
+        }
+    ;
+
+namespace_element /* hint: combine_nterms list_element */
+    : namespace_definition {
+            $$ = (void*)create_namespace_element();
+           ((struct _ast_namespace_element_t_*)$$)->nterms = $1;
+           ((struct _ast_namespace_element_t_*)$$)->next = NULL;
+        }
+    | class_definition {
+            $$ = (void*)create_namespace_element();
+           ((struct _ast_namespace_element_t_*)$$)->nterms = $1;
+           ((struct _ast_namespace_element_t_*)$$)->next = NULL;
+        }
+    ;
+
+class_definition
+    : scope CLASS SYMBOL class_parameters class_block {
+            $$ = (void*)create_class_definition();
+           ((struct _ast_class_definition_t_*)$$)->SYMBOL = $3;
+           ((struct _ast_class_definition_t_*)$$)->scope = $1;
+           ((struct _ast_class_definition_t_*)$$)->class_parameters = $4;
+           ((struct _ast_class_definition_t_*)$$)->class_block = $5;
+        }
+    ;
+
+class_parameters
+    : %empty {
+            $$ = (void*)create_class_parameters();
+           ((struct _ast_class_parameters_t_*)$$)->compound_symbol = NULL;
+        }
+    | OPAREN CPAREN {
+            $$ = (void*)create_class_parameters();
+           ((struct _ast_class_parameters_t_*)$$)->compound_symbol = NULL;
+        }
+    | OPAREN compound_symbol CPAREN {
+            $$ = (void*)create_class_parameters();
+           ((struct _ast_class_parameters_t_*)$$)->compound_symbol = $2;
+        }
+    ;
+
+class_block
+    : OBLOCK CBLOCK {
+            $$ = (void*)create_class_block();
+        }
+    ;
+
 %%
 
 /*

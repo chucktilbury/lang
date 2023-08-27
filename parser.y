@@ -28,7 +28,7 @@ ast_module_t* ast_module_root = NULL;
 %token NOT OR AND EQU NEQU LORE GORE TRUE FALSE BREAK CONTINUE
 %token ENTRY MODULE
 %token ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
-%token ASSIGN ADD SUB MUL DIV MOD DOT COMMA
+%token ASSIGN ADD SUB MUL DIV MOD POW DOT COMMA
 %token OPOINT CPOINT CPAREN OPAREN OBLOCK CBLOCK OBRACE CBRACE
 
 %token <str> SYMBOL STRG_CONST
@@ -63,21 +63,27 @@ ast_module_t* ast_module_root = NULL;
 %define parse.error custom
 %locations
 
-%right ASSIGN
-%right ADD_ASSIGN SUB_ASSIGN
-%right MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
-%left CAST
-%left OR
-%left AND
-%left EQU NEQU
-%left LORE GORE OPOINT CPOINT
-%left ADD SUB
-%left MUL DIV MOD
-%left NEGATE
+    /*
+        %right ASSIGN
+        %right ADD_ASSIGN SUB_ASSIGN
+        %right MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
+        %left CAST
+        %left OR
+        %left AND
+        %left EQU NEQU
+        %left LORE GORE OPOINT CPOINT
+        %left ADD SUB
+        %left MUL DIV MOD
+        %precedence NEGATE
+        %right POW
+    */
 
 %%
+    /*
+        This is a comment that is not a hint:.
+    */
 
-module
+module /* hint: nothing */
     : MODULE SYMBOL OPAREN module_type CPAREN module_body {
             $$ = (void*)create_module();
             ((struct _ast_module_t_*)$$)->SYMBOL = $2;
@@ -87,9 +93,6 @@ module
         }
     ;
 
-    /*
-        This is a comment that is not a hint:.
-    */
 module_type /* hint: combine_terms */
     : %empty {
             $$ = (void*)create_module_type();
@@ -168,22 +171,37 @@ compound_symbol /* hint: is_list */
         }
     ;
 
-compound_symbol_element /* hint: combine_terms list_element */
+compound_symbol_element /* hint: combine_nterms list_element */
     : SYMBOL {
             $$ = (void*)create_compound_symbol_element();
            ((struct _ast_compound_symbol_element_t_*)$$)->terms = $1;
            ((struct _ast_compound_symbol_element_t_*)$$)->next = NULL;
         }
+    | func_reference
+    | array_reference
     ;
 
-import_statement
+func_reference /* hint: nothing */
+    : SYMBOL OPAREN expr_list CPAREN
+    ;
+
+array_reference /* hint: nothing */
+    : SYMBOL OBRACE array_index CBRACE
+    ;
+
+array_index /* hint: nothing */
+    : expression
+    | array_reference
+    ;
+
+import_statement /* hint: nothing */
     : IMPORT compound_symbol {
             $$ = (void*)create_import_statement();
            ((struct _ast_import_statement_t_*)$$)->compound_symbol = $2;
         }
     ;
 
-namespace_definition
+namespace_definition /* hint: nothing */
     : scope NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {
             $$ = (void*)create_namespace_definition();
            ((struct _ast_namespace_definition_t_*)$$)->SYMBOL = $3;
@@ -216,7 +234,7 @@ namespace_element /* hint: combine_nterms list_element */
         }
     ;
 
-class_definition
+class_definition /* hint: nothing */
     : scope CLASS SYMBOL class_parameters class_block {
             $$ = (void*)create_class_definition();
            ((struct _ast_class_definition_t_*)$$)->SYMBOL = $3;
@@ -226,7 +244,7 @@ class_definition
         }
     ;
 
-class_parameters
+class_parameters /* hint: nothing */
     : %empty {
             $$ = (void*)create_class_parameters();
            ((struct _ast_class_parameters_t_*)$$)->compound_symbol = NULL;
@@ -241,10 +259,64 @@ class_parameters
         }
     ;
 
-class_block
+class_block /* hint: nothing */
     : OBLOCK CBLOCK {
             $$ = (void*)create_class_block();
         }
+    ;
+
+primary /* hint: nothing */
+    : compound_symbol
+    | STRG_CONST
+    | FLOAT_CONST
+    | INT_CONST
+    | UNSIGNED_CONST
+    | OPAREN expression CPAREN
+    ;
+
+expression /* hint: binary_op */
+    : expression AND comp
+    | expression OR comp
+    | comp
+    ;
+
+comp /* hint: binary_op */
+    : comp EQU ltgt
+    | comp NEQU ltgt
+    | ltgt
+    ;
+
+ltgt /* hint: binary_op */
+    : ltgt LORE term
+    | ltgt GORE term
+    | ltgt OPOINT term
+    | ltgt CPOINT term
+    | term
+    ;
+
+term /* hint: binary_op */
+    : term ADD factor
+    | term SUB factor
+    | factor
+    ;
+
+factor /* hint: binary_op */
+    : factor MUL unary
+    | factor DIV unary
+    | factor MOD unary
+    | factor POW unary
+    | unary
+    ;
+
+unary /* hint: unary_op */
+    : NOT unary
+    | SUB unary
+    | primary
+    ;
+
+expr_list /* hint: is_list */
+    : expression
+    | expr_list COMMA expression
     ;
 
 %%

@@ -2,13 +2,22 @@
 #define _LOG_H
 
 #ifdef ENA_TRACE
-#define TRACE(m, ...)   do { \
-        printf("trace: "); \
-        printf((m), ## __VA_ARGS__ ); \
-        printf("\n"); \
+
+#define TRACE()   do { \
+        printf("trace: %s\n", __func__); \
     }while(0)
+
+#define MSG(m, ...) do { \
+        printf("msg: "); \
+        printf((m), ##__VA_ARGS__); \
+        printf("\n"); \
+    } while(0)
+
 #else
-#define TRACE(m, ...)
+
+#define TRACE()
+#define MSG(m, ...)
+
 #endif
 
 #endif /* _LOG_H */

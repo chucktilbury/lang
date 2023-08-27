@@ -26,11 +26,11 @@ def read_tokens():
                             if x[1] == '<str>':
                                 type = 'const char*'
                             elif x[1] == '<inum>':
-                                type == 'int64_t'
+                                type = 'int64_t'
                             elif x[1] == '<unum>':
-                                type == 'uint64_t'
+                                type = 'uint64_t'
                             elif x[1] == '<fnum>':
-                                type == 'double'
+                                type = 'double'
                             elif x[1] == '<symbol>':
                                 type = 'int'
                         else:
@@ -146,7 +146,7 @@ def emit_ds_items(fp, name, data):
     else:
         for item in r['elem']:
             if item in t:
-                stuff.append('%s %s;'%(data['tokens'][item], item))
+                stuff.append('//%s %s;'%(data['tokens'][item], item))
 
     # filter out the non-terminal symbols and replace with a single void* var
     if 'combine_nterms' in r['hint']:
@@ -216,7 +216,7 @@ def emit_ast_h(data):
         fp.write(' */\n\n')
         fp.write('#ifndef _AST_H\n')
         fp.write('#define _AST_H\n\n')
-
+        fp.write('#include <stdint.h>\n\n')
         emit_enum(fp, data)
         emit_all_ds(fp, data)
 
@@ -240,7 +240,7 @@ def emit_create(fp, name, data):
     fp.write('        }\n */\n')
 
     fp.write('struct _ast_%s_t_* create_%s() {\n\n'%(name, name))
-    fp.write('    TRACE("create_%s");\n'%(name))
+    fp.write('    TRACE();\n')
     fp.write('    struct _ast_%s_t_* ptr = _ALLOC_T(struct _ast_%s_t_);\n'%(name, name))
     fp.write('    ptr->type = AST_%s;\n\n'%(name))
     fp.write('    return ptr;\n')
@@ -260,7 +260,7 @@ def emit_add(fp, name, data):
                     %(name, r['elem'][1], r['elem'][0]))
     fp.write('    assert(lst != NULL);\n')
     fp.write('    assert(elem != NULL);\n\n')
-    fp.write('    TRACE("add_%s");\n'%(name))
+    fp.write('    TRACE();\n')
     fp.write('    if(lst->first == NULL)\n')
     fp.write('        lst->first = elem;\n')
     fp.write('    else\n')
@@ -292,12 +292,12 @@ def emit_ast_c(data):
 if __name__ == '__main__':
 
     tokens = read_tokens()
-    #pp(tokens)
+    pp(tokens)
     rules = read_rules(tokens)
     data = {'tokens': tokens, 'rules': rules}
 
     emit_ast_h(data)
     emit_ast_c(data)
 
-    #pp(rules)
+    pp(rules)
 

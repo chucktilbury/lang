@@ -218,7 +218,7 @@ def emit_ast_h(data):
         fp.write('#define _AST_H\n\n')
         fp.write('#include <stdint.h>\n\n')
         emit_enum(fp, data)
-        emit_all_ds(fp, data)
+        #emit_all_ds(fp, data)
 
         fp.write('\n#define TYPEOF(p) (*((ast_type_t*)(p)))\n\n')
 
@@ -284,20 +284,20 @@ def emit_ast_c(data):
         fp.write('#include "log.h"\n')
         fp.write('#include "mem.h"\n\n')
 
-        for item in data['rules']:
-            emit_create(fp, item, data)
-            if 'is_list' in data['rules'][item]['hint']:
-                emit_add(fp, item, data)
+        # for item in data['rules']:
+        #     emit_create(fp, item, data)
+        #     if 'is_list' in data['rules'][item]['hint']:
+        #         emit_add(fp, item, data)
 
 if __name__ == '__main__':
 
     tokens = read_tokens()
-    pp(tokens)
+    #pp(tokens)
     rules = read_rules(tokens)
     data = {'tokens': tokens, 'rules': rules}
 
     emit_ast_h(data)
     emit_ast_c(data)
 
-    pp(rules)
+    #pp(rules)
 

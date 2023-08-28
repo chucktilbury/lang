@@ -5,11 +5,12 @@
 %{
 #include <stdio.h>
 #include <stdint.h>
+#include "log.h"
 #include "str.h"
 #include "ast.h"
 #include "scanner.h"
 
-ast_module_t* ast_module_root = NULL;
+//ast_module_t* ast_module_root = NULL;
 
 %}
 
@@ -25,11 +26,9 @@ ast_module_t* ast_module_root = NULL;
 %token NAMESPACE CLASS CREATE DESTROY
 %token IF ELSE WHILE DO FOR IN TO TRY
 %token EXCEPT RAISE RETURN EXIT SWITCH CASE YIELD TRACE PRINT IMPORT
-%token NOT OR AND EQU NEQU LORE GORE TRUE FALSE BREAK CONTINUE
-%token ENTRY MODULE
-%token ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
-%token ASSIGN ADD SUB MUL DIV MOD POW DOT COMMA
-%token OPOINT CPOINT CPAREN OPAREN OBLOCK CBLOCK OBRACE CBRACE
+%token TRUE FALSE BREAK CONTINUE
+%token ENTRY MODULE DEFAULT DOT COMMA MEMBER
+%token CPAREN OPAREN OBLOCK CBLOCK OBRACE CBRACE
 
 %token <str> SYMBOL STRG_CONST
 %token <fnum> FLOAT_CONST
@@ -38,6 +37,9 @@ ast_module_t* ast_module_root = NULL;
 %token <symbol> PUBLIC PRIVATE PROTECTED INTEGER UNSIGNED
 %token <symbol> FLOAT STRING DICT LIST BOOLEAN NOTHING
 %token <symbol> EXEC STATIC DYNAMIC
+%token <symbol> ASSIGN ADD SUB MUL DIV MOD POW
+%token <symbol> NOT OR AND EQU NEQU LORE GORE OPOINT CPOINT
+%token <symbol> ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
 
     /*
      *  These types are copied from the nterm.txt file, which is
@@ -48,275 +50,395 @@ ast_module_t* ast_module_root = NULL;
 %type <nterm> module_element
 %type <nterm> module_body
 %type <nterm> scope
+%type <nterm> type_name
 %type <nterm> compound_symbol
 %type <nterm> compound_symbol_element
+%type <nterm> formatted_string
+%type <nterm> func_reference
+%type <nterm> array_reference
+%type <nterm> import_statement
 %type <nterm> namespace_definition
 %type <nterm> namespace_block
 %type <nterm> namespace_element
 %type <nterm> class_definition
 %type <nterm> class_parameters
 %type <nterm> class_block
-%type <nterm> import_statement
+%type <nterm> class_body
+%type <nterm> class_body_element
+%type <nterm> var_declaration
+%type <nterm> func_declaration
+%type <nterm> func_decl_parms
+%type <nterm> func_decl_parms_elem
+%type <nterm> bool_literal
+%type <nterm> primary
+%type <nterm> const_expression
+%type <nterm> expression
+%type <nterm> expr_list
+%type <nterm> member
+%type <nterm> func_definition
+%type <nterm> ctor_definition
+%type <nterm> dtor_definition
+%type <nterm> func_block
+%type <nterm> assignment_oper
+%type <nterm> assignment
+%type <nterm> data_definition
+%type <nterm> func_content
+%type <nterm> if_else_clause
+%type <nterm> if_clause
+%type <nterm> else_clause
+%type <nterm> else_clause_list
+%type <nterm> else_clause_final
+%type <nterm> while_clause
+%type <nterm> do_clause
+%type <nterm> for_clause
+%type <nterm> switch_case_clause
+%type <nterm> switch_clause
+%type <nterm> case_clause
+%type <nterm> case_clause_list
+%type <nterm> case_clause_final
+%type <nterm> try_except_clause
+%type <nterm> try_clause
+%type <nterm> except_clause
+%type <nterm> except_clause_list
+%type <nterm> except_clause_final
     /*
      */
 
 %define parse.error custom
 %locations
 
-    /*
-        %right ASSIGN
-        %right ADD_ASSIGN SUB_ASSIGN
-        %right MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
-        %left CAST
-        %left OR
-        %left AND
-        %left EQU NEQU
-        %left LORE GORE OPOINT CPOINT
-        %left ADD SUB
-        %left MUL DIV MOD
-        %precedence NEGATE
-        %right POW
-    */
+%precedence CAST
+%left OR
+%left AND
+%left EQU NEQU
+%left LORE GORE OPOINT CPOINT
+%left ADD SUB
+%left MUL DIV MOD
+%precedence UNARY
+%right POW
 
 %%
-    /*
-        This is a comment that is not a hint:.
-    */
-
-module /* hint: nothing */
-    : MODULE SYMBOL OPAREN module_type CPAREN module_body {
-            $$ = (void*)create_module();
-            ((struct _ast_module_t_*)$$)->SYMBOL = $2;
-            ((struct _ast_module_t_*)$$)->module_type = $4;
-            ((struct _ast_module_t_*)$$)->module_body = $6;
-            ast_module_root = $$; // return value from the parser.
-        }
+module
+    : MODULE SYMBOL OPAREN module_type CPAREN module_body {PTRACE("module: %s", $2);}
     ;
 
-module_type /* hint: combine_terms */
-    : %empty {
-            $$ = (void*)create_module_type();
-            ((struct _ast_module_type_t_*)$$)->terms = EXEC;
-        }
-    | EXEC {
-            $$ = (void*)create_module_type();
-            ((struct _ast_module_type_t_*)$$)->terms = $1;
-        }
-    | STATIC {
-            $$ = (void*)create_module_type();
-            ((struct _ast_module_type_t_*)$$)->terms = $1;
-        }
-    | DYNAMIC {
-            $$ = (void*)create_module_type();
-            ((struct _ast_module_type_t_*)$$)->terms = $1;
-        }
+module_type
+    : %empty {PTRACE("module_type:%%empty");}
+    | EXEC {PTRACE("module_type:EXEC");}
+    | STATIC {PTRACE("module_type:STATIC");}
+    | DYNAMIC {PTRACE("module_type:DYNAMIC");}
     ;
 
-module_element /* hint: combine_nterms list_element */
-    : namespace_definition {
-            $$ = (void*)create_module_element();
-           ((struct _ast_module_element_t_*)$$)->nterms = $1;
-           ((struct _ast_module_element_t_*)$$)->next = NULL;
-        }
-    | class_definition {
-            $$ = (void*)create_module_element();
-           ((struct _ast_module_element_t_*)$$)->nterms = $1;
-           ((struct _ast_module_element_t_*)$$)->next = NULL;
-        }
-    | import_statement {
-            $$ = (void*)create_module_element();
-           ((struct _ast_module_element_t_*)$$)->nterms = $1;
-           ((struct _ast_module_element_t_*)$$)->next = NULL;
-        }
+module_element
+    : namespace_element {PTRACE("module_element:namespace_element");}
+    | import_statement {PTRACE("module_element:import_statement");}
+    | ENTRY func_block {PTRACE("module_element:ENTRY");}
     ;
 
-module_body /* hint: is_list */
-    : module_element {
-            $$ = (void*)create_module_body();
-           ((struct _ast_module_body_t_*)$$)->first = $1;
-           ((struct _ast_module_body_t_*)$$)->last = $1;
-        }
-    | module_body module_element {
-            add_module_body((struct _ast_module_body_t_*)$$, $2);
-        }
+module_body
+    : module_element {PTRACE("module_body:module_element");}
+    | module_body module_element {PTRACE("module_body:module_body");}
     ;
 
-scope /* hint: combine_terms*/
-    : %empty {
-            $$ = (void*)create_scope();
-           ((struct _ast_scope_t_*)$$)->terms = PRIVATE;
-        }
-    | PUBLIC {
-            $$ = (void*)create_scope();
-           ((struct _ast_scope_t_*)$$)->terms = $1;
-        }
-    | PRIVATE {
-            $$ = (void*)create_scope();
-           ((struct _ast_scope_t_*)$$)->terms = $1;
-        }
-    | PROTECTED {
-            $$ = (void*)create_scope();
-           ((struct _ast_scope_t_*)$$)->terms = $1;
-        }
+scope
+    : PUBLIC {PTRACE("scope:PUBLIC");}
+    | PRIVATE {PTRACE("scope:PRIVATE");}
+    | PROTECTED {PTRACE("scope:PROTECTED");}
     ;
 
-compound_symbol /* hint: is_list */
-    : compound_symbol_element {
-            $$ = (void*)create_compound_symbol();
-           ((struct _ast_compound_symbol_t_*)$$)->first = $1;
-           ((struct _ast_compound_symbol_t_*)$$)->last = $1;
-        }
-    | compound_symbol DOT compound_symbol_element {
-            add_compound_symbol((struct _ast_compound_symbol_t_*)$$, $3);
-        }
+type_name
+    : compound_symbol {PTRACE("type_name:compound_symbol");}
+    | FLOAT {PTRACE("type_name:FLOAT");}
+    | INTEGER {PTRACE("type_name:INTEGER");}
+    | UNSIGNED {PTRACE("type_name:UNSIGNED");}
+    | STRING {PTRACE("type_name:STRING");}
+    | DICT {PTRACE("type_name:DICT");}
+    | LIST {PTRACE("type_name:LIST");}
+    | BOOLEAN {PTRACE("type_name:BOOLEAN");}
+    | NOTHING {PTRACE("type_name:NOTHING");}
     ;
 
-compound_symbol_element /* hint: combine_nterms list_element */
-    : SYMBOL {
-            $$ = (void*)create_compound_symbol_element();
-           ((struct _ast_compound_symbol_element_t_*)$$)->terms = $1;
-           ((struct _ast_compound_symbol_element_t_*)$$)->next = NULL;
-        }
-    | func_reference
-    | array_reference
+compound_symbol
+    : compound_symbol_element {PTRACE("compound_symbol:compound_symbol_element");}
+    | compound_symbol DOT compound_symbol_element {PTRACE("compound_symbol:compound_symbol.elem");}
     ;
 
-func_reference /* hint: nothing */
-    : SYMBOL OPAREN expr_list CPAREN
+compound_symbol_element
+    : SYMBOL {PTRACE("compound_symbol_element:SYMBOL (%s)", $1);}
+    | func_reference {PTRACE("compound_symbol_element:func_reference");}
+    | array_reference {PTRACE("compound_symbol_element:array_reference");}
     ;
 
-array_reference /* hint: nothing */
-    : SYMBOL OBRACE array_index CBRACE
+formatted_string
+    : STRG_CONST {PTRACE("formatted_string:STRG_CONST");}
+    | STRG_CONST OPAREN CPAREN {PTRACE("formatted_string:STRG_CONST()");}
+    | STRG_CONST OPAREN expr_list CPAREN {PTRACE("formatted_string:STRG_CONST(expr_lst)");}
     ;
 
-array_index /* hint: nothing */
-    : expression
-    | array_reference
+func_reference
+    : SYMBOL OPAREN CPAREN {PTRACE("func_reference:%s()", $1);}
+    | SYMBOL OPAREN expr_list CPAREN {PTRACE("func_reference:%s(expr_lst)", $1);}
     ;
 
-import_statement /* hint: nothing */
-    : IMPORT compound_symbol {
-            $$ = (void*)create_import_statement();
-           ((struct _ast_import_statement_t_*)$$)->compound_symbol = $2;
-        }
+array_reference
+    : SYMBOL OBRACE expression CBRACE {PTRACE("array_reference:%s[expr]", $1);}
     ;
 
-namespace_definition /* hint: nothing */
-    : scope NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {
-            $$ = (void*)create_namespace_definition();
-           ((struct _ast_namespace_definition_t_*)$$)->SYMBOL = $3;
-           ((struct _ast_namespace_definition_t_*)$$)->scope = $1;
-           ((struct _ast_namespace_definition_t_*)$$)->namespace_block = $5;
-        }
+import_statement
+    : IMPORT compound_symbol {PTRACE("import_statement:compound_symbol");}
     ;
 
-namespace_block /* hint: is_list */
-    : namespace_element {
-            $$ = (void*)create_namespace_block();
-           ((struct _ast_namespace_block_t_*)$$)->first = $1;
-           ((struct _ast_namespace_block_t_*)$$)->last = $1;
-        }
-    | namespace_block namespace_element {
-            add_namespace_block((struct _ast_namespace_block_t_*)$$, $2);
-        }
+namespace_definition
+    : NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {PTRACE("namespace_definition:%s", $2);}
     ;
 
-namespace_element /* hint: combine_nterms list_element */
-    : namespace_definition {
-            $$ = (void*)create_namespace_element();
-           ((struct _ast_namespace_element_t_*)$$)->nterms = $1;
-           ((struct _ast_namespace_element_t_*)$$)->next = NULL;
-        }
-    | class_definition {
-            $$ = (void*)create_namespace_element();
-           ((struct _ast_namespace_element_t_*)$$)->nterms = $1;
-           ((struct _ast_namespace_element_t_*)$$)->next = NULL;
-        }
+namespace_block
+    : namespace_element {PTRACE("namespace_block:namespace_element");}
+    | namespace_block namespace_element {PTRACE("namespace_block:namespace_block");}
     ;
 
-class_definition /* hint: nothing */
-    : scope CLASS SYMBOL class_parameters class_block {
-            $$ = (void*)create_class_definition();
-           ((struct _ast_class_definition_t_*)$$)->SYMBOL = $3;
-           ((struct _ast_class_definition_t_*)$$)->scope = $1;
-           ((struct _ast_class_definition_t_*)$$)->class_parameters = $4;
-           ((struct _ast_class_definition_t_*)$$)->class_block = $5;
-        }
+namespace_element
+    : namespace_definition {PTRACE("namespace_element:namespace_definition");}
+    | class_definition {PTRACE("namespace_element:class_definition");}
+    | func_definition {PTRACE("namespace_element:func_definition");}
+    | ctor_definition {PTRACE("namespace_element:ctor_definition");}
+    | dtor_definition {PTRACE("namespace_element:dtor_definition");}
+    | scope {PTRACE("namespace_element:scope");}
     ;
 
-class_parameters /* hint: nothing */
-    : %empty {
-            $$ = (void*)create_class_parameters();
-           ((struct _ast_class_parameters_t_*)$$)->compound_symbol = NULL;
-        }
-    | OPAREN CPAREN {
-            $$ = (void*)create_class_parameters();
-           ((struct _ast_class_parameters_t_*)$$)->compound_symbol = NULL;
-        }
-    | OPAREN compound_symbol CPAREN {
-            $$ = (void*)create_class_parameters();
-           ((struct _ast_class_parameters_t_*)$$)->compound_symbol = $2;
-        }
+class_definition
+    : CLASS SYMBOL class_parameters class_block {PTRACE("class_definition:%s", $2);}
     ;
 
-class_block /* hint: nothing */
-    : OBLOCK CBLOCK {
-            $$ = (void*)create_class_block();
-        }
+class_parameters
+    : %empty {PTRACE("class_parameters:%%empty");}
+    | OPAREN CPAREN {PTRACE("class_parameters:()");}
+    | OPAREN compound_symbol CPAREN {PTRACE("class_parameters:(compound_symbol)");}
     ;
 
-primary /* hint: nothing */
-    : compound_symbol
-    | STRG_CONST
-    | FLOAT_CONST
-    | INT_CONST
-    | UNSIGNED_CONST
-    | OPAREN expression CPAREN
+class_block
+    : OBLOCK CBLOCK {PTRACE("class_block:{}");}
+    | OBLOCK class_body CBLOCK {PTRACE("class_block:{body}");}
     ;
 
-expression /* hint: binary_op */
-    : expression AND comp
-    | expression OR comp
-    | comp
+class_body
+    : class_body_element {PTRACE("class_body:class_body_element");}
+    | class_body class_body_element {PTRACE("class_body:class_body");}
     ;
 
-comp /* hint: binary_op */
-    : comp EQU ltgt
-    | comp NEQU ltgt
-    | ltgt
+class_body_element
+    : var_declaration {PTRACE("class_body_element:var_declaration");}
+    | func_declaration {PTRACE("class_body_element:func_declaration");}
+    | scope {PTRACE("class_body_element:scope");}
     ;
 
-ltgt /* hint: binary_op */
-    : ltgt LORE term
-    | ltgt GORE term
-    | ltgt OPOINT term
-    | ltgt CPOINT term
-    | term
+var_declaration
+    : type_name SYMBOL {PTRACE("var_declaration:%s", $2);}
     ;
 
-term /* hint: binary_op */
-    : term ADD factor
-    | term SUB factor
-    | factor
+func_declaration
+    : type_name SYMBOL OPAREN func_decl_parms CPAREN {PTRACE("func_declaration:%s", $2);}
+    | CREATE OPAREN func_decl_parms CPAREN {PTRACE("func_declaration:CREATE");}
     ;
 
-factor /* hint: binary_op */
-    : factor MUL unary
-    | factor DIV unary
-    | factor MOD unary
-    | factor POW unary
-    | unary
+func_decl_parms
+    : func_decl_parms_elem {PTRACE("func_decl_parms:func_decl_parms_elem");}
+    | func_decl_parms COMMA func_decl_parms_elem {PTRACE("func_decl_parms:func_decl_parms");}
     ;
 
-unary /* hint: unary_op */
-    : NOT unary
-    | SUB unary
-    | primary
+func_decl_parms_elem
+    : type_name SYMBOL {PTRACE("func_decl_parms_elem:%s", $2);}
     ;
 
-expr_list /* hint: is_list */
-    : expression
-    | expr_list COMMA expression
+bool_literal
+    : TRUE {PTRACE("bool_literal:TRUE");}
+    | FALSE {PTRACE("bool_literal:FALSE");}
+    ;
+
+primary
+    : compound_symbol {PTRACE("primary:compound_symbol");}
+    | const_expression {PTRACE("primary:const_expression");}
+    ;
+
+const_expression
+    : formatted_string {PTRACE("const_expression:formatted_string");}
+    | bool_literal {PTRACE("const_expression:bool_literal");}
+    | FLOAT_CONST {PTRACE("const_expression:%f", $1);}
+    | INT_CONST {PTRACE("const_expression:%ld", $1);}
+    | UNSIGNED_CONST {PTRACE("const_expression:%lu", $1);}
+    ;
+
+expression
+    : primary {PTRACE("expression:primary");}
+    | expression AND expression {PTRACE("expression:e and e");}
+    | expression OR expression {PTRACE("expression:e or e");}
+    | expression EQU expression {PTRACE("expression:e == e");}
+    | expression NEQU expression {PTRACE("expression:e != e");}
+    | expression LORE expression {PTRACE("expression:e <= e");}
+    | expression GORE expression {PTRACE("expression:e >= e");}
+    | expression OPOINT expression {PTRACE("expression:e < e");}
+    | expression CPOINT expression {PTRACE("expression:e > ");}
+    | expression ADD expression {PTRACE("expression:e + e");}
+    | expression SUB expression {PTRACE("expression:e - e");}
+    | expression MUL expression {PTRACE("expression:e * e");}
+    | expression DIV expression {PTRACE("expression:e / e");}
+    | expression MOD expression {PTRACE("expression:e %% e");}
+    | expression POW expression {PTRACE("expression:e ^ e");}
+    | NOT expression %prec UNARY {PTRACE("expression:- e");}
+    | SUB expression %prec UNARY {PTRACE("expression:! e");}
+    | OPOINT type_name CPOINT expression %prec CAST {PTRACE("expression:(type)e");}
+    | OPAREN expression CPAREN {PTRACE("expression:(e)");}
+    ;
+
+expr_list
+    : expression {PTRACE("expr_list:expression");}
+    | expr_list COMMA expression {PTRACE("expr_list:expr_list");}
+    ;
+
+member
+    : SYMBOL MEMBER {PTRACE("member:%s", $1);}
+    ;
+
+func_definition
+    : type_name member SYMBOL OPAREN func_decl_parms CPAREN func_block {PTRACE("func_definition:%s", $3);}
+    ;
+
+ctor_definition
+    : member OPAREN func_decl_parms CPAREN func_block {PTRACE("ctor_definition");}
+    ;
+
+dtor_definition
+    : member DESTROY func_block {PTRACE("dtor_definition");}
+    ;
+
+func_block
+    : OBLOCK CBLOCK {PTRACE("func_block{}");}
+    | OBLOCK func_content CBLOCK {PTRACE("func_block{func_content}");}
+    ;
+
+assignment_oper
+    : ASSIGN {PTRACE("assignment_oper:=");}
+    | ADD_ASSIGN {PTRACE("assignment_oper:+=");}
+    | SUB_ASSIGN {PTRACE("assignment_oper:-=");}
+    | MUL_ASSIGN {PTRACE("assignment_oper:*=");}
+    | DIV_ASSIGN {PTRACE("assignment_oper:/=");}
+    | MOD_ASSIGN {PTRACE("assignment_oper:%%=");}
+    ;
+
+assignment
+    : assignment_oper expression {PTRACE("assignment");}
+    ;
+
+data_definition
+    : var_declaration {PTRACE("data_definition");}
+    | var_declaration assignment {PTRACE("data_definition:assignment");}
+    ;
+
+func_content
+    : func_block {PTRACE("func_content:func_block");}
+    | data_definition {PTRACE("func_content:data_definition");}
+    | func_reference {PTRACE("func_content:func_reference");}
+    | if_else_clause {PTRACE("func_content:if_else_clause");}
+    | while_clause {PTRACE("func_content:while_clause");}
+    | do_clause {PTRACE("func_content:do_clause");}
+    | for_clause {PTRACE("func_content:for_clause");}
+    | switch_case_clause {PTRACE("func_content:switch_case_clause");}
+    | try_except_clause {PTRACE("func_content:try_except_clause");}
+    | RETURN {PTRACE("func_content:RETURN");}
+    | RETURN OPAREN CPAREN {PTRACE("func_content:RETURN()");}
+    | RETURN OPAREN expression CPAREN {PTRACE("func_content:RETURN(expr)");}
+    | RAISE OPAREN compound_symbol CPAREN {PTRACE("func_content:");}
+    | EXIT OPAREN expression CPAREN {PTRACE("func_content:EXIT");}
+    | YIELD OPAREN SYMBOL CPAREN {PTRACE("func_content:YIELD:%s", $3);}
+    | TRACE {PTRACE("func_content:TRACE");}
+    | TRACE OPAREN CPAREN {PTRACE("func_content:TRACE()");}
+    | TRACE OPAREN formatted_string CPAREN {PTRACE("func_content:TRACE(str)");}
+    | PRINT {PTRACE("func_content:PRINT");}
+    | PRINT OPAREN CPAREN {PTRACE("func_content:PRINT()");}
+    | PRINT OPAREN formatted_string CPAREN {PTRACE("func_content:PRINT(str)");}
+    | BREAK {PTRACE("func_content:BREAK");}
+    | CONTINUE {PTRACE("func_content:CONTINUE");}
+    ;
+
+if_else_clause
+    : if_clause {PTRACE("if_else_clause:");}
+    | if_clause else_clause_list {PTRACE("if_else_clause:else_clause_list");}
+    | if_clause else_clause_list else_clause_final {PTRACE("if_else_clause:else_clause_final");}
+    ;
+
+if_clause
+    : IF OPAREN expression CPAREN func_block {PTRACE("if_clause");}
+    ;
+
+else_clause
+    : ELSE OPAREN expression CPAREN func_block {PTRACE("else_clause");}
+    ;
+
+else_clause_list
+    : else_clause {PTRACE("else_clause_list:else_clause");}
+    | else_clause_list else_clause {PTRACE("else_clause_list:else_clause_list");}
+    ;
+
+else_clause_final
+    : ELSE OPAREN CPAREN func_block {PTRACE("else_clause_final:(){}");}
+    | ELSE func_block {PTRACE("else_clause_final:{}");}
+    ;
+
+while_clause
+    : WHILE OPAREN expression CPAREN func_block {PTRACE("while_clause");}
+    ;
+
+do_clause
+    : DO func_block WHILE OPAREN expression CPAREN {PTRACE("do_clause");}
+    ;
+
+for_clause
+    : FOR OPAREN SYMBOL IN compound_symbol CPAREN func_block {PTRACE("for_clause:in");}
+    | FOR OPAREN SYMBOL IN expression TO expression CPAREN func_block {PTRACE("for_clause:in:to");}
+    ;
+
+switch_case_clause
+    : switch_clause case_clause_list case_clause_final {PTRACE("switch_case_clause");}
+    ;
+
+switch_clause
+    : SWITCH OPAREN expression CPAREN OBLOCK {PTRACE("switch_clause");}
+    ;
+
+case_clause
+    : CASE OPAREN const_expression CPAREN func_block {PTRACE("case_clause");}
+    ;
+
+case_clause_list
+    : case_clause {PTRACE("case_clause_list:case_clause");}
+    | case_clause_list case_clause {PTRACE("case_clause_list:case_clause_list");}
+    ;
+
+case_clause_final
+    : CBLOCK {PTRACE("case_clause_final");}
+    | DEFAULT func_block CBLOCK {PTRACE("case_clause_final:default");}
+    ;
+
+try_except_clause
+    : try_clause except_clause_list except_clause_final {PTRACE("try_except_clause");}
+    ;
+
+try_clause
+    : TRY func_block {PTRACE("try_clause");}
+    ;
+
+except_clause
+    : EXCEPT OPAREN compound_symbol CPAREN func_block {PTRACE("except_clause");}
+    ;
+
+except_clause_list
+    : except_clause {PTRACE("except_clause_list:except_clause");}
+    | except_clause_list except_clause {PTRACE("except_clause_list:except_clause_list");}
+    ;
+
+except_clause_final
+    : EXCEPT OPAREN CPAREN func_block {PTRACE("except_clause_final(){}");}
+    | EXCEPT func_block {PTRACE("except_clause_final{}");}
     ;
 
 %%
@@ -360,6 +482,7 @@ symbol_name (yysymbol_kind_t yysymbol)
         (yysymbol == YYSYMBOL_EXIT)? "EXIT keyword" :
         (yysymbol == YYSYMBOL_SWITCH)? "SWITCH keyword" :
         (yysymbol == YYSYMBOL_CASE)? "CASE keyword" :
+        (yysymbol == YYSYMBOL_DEFAULT)? "DEFAULT keyword" :
         (yysymbol == YYSYMBOL_YIELD)? "YIELD keyword" :
         (yysymbol == YYSYMBOL_TRACE)? "TRACE keyword" :
         (yysymbol == YYSYMBOL_PRINT)? "PRINT keyword" :
@@ -377,6 +500,7 @@ symbol_name (yysymbol_kind_t yysymbol)
         (yysymbol == YYSYMBOL_OR)? "OR operator" :
         (yysymbol == YYSYMBOL_AND)? "AND operator" :
         (yysymbol == YYSYMBOL_EQU)? "== operator" :
+        (yysymbol == YYSYMBOL_POW)? "^ operator" :
         (yysymbol == YYSYMBOL_NEQU)? "!= operator" :
         (yysymbol == YYSYMBOL_LORE)? "<= operator" :
         (yysymbol == YYSYMBOL_GORE)? ">= operator" :
@@ -393,6 +517,7 @@ symbol_name (yysymbol_kind_t yysymbol)
         (yysymbol == YYSYMBOL_MOD)? "% operator" :
         (yysymbol == YYSYMBOL_DOT)? ". operator" :
         (yysymbol == YYSYMBOL_COMMA)? "," :
+        (yysymbol == YYSYMBOL_MEMBER)? ":" :
         (yysymbol == YYSYMBOL_OPOINT)? "<" :
         (yysymbol == YYSYMBOL_CPOINT)? ">" :
         (yysymbol == YYSYMBOL_CPAREN)? ")" :

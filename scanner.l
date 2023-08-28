@@ -84,6 +84,7 @@ int yycolumn = 1;
 "return"        { return RETURN; }
 "exit"          { return EXIT; }
 "switch"        { return SWITCH; }
+"default"       { return DEFAULT; }
 "case"          { return CASE; }
 "yield"         { return YIELD; }
 "trace"         { return TRACE; }
@@ -141,6 +142,7 @@ int yycolumn = 1;
 "lt"        { return OPOINT; }
 ">"         { return CPOINT; }
 "gt"        { return CPOINT; }
+":"         { return MEMBER; }
 
     /* constructed tokens */
 [a-zA-Z_][a-zA-Z_0-9]* {

@@ -13,10 +13,16 @@
         printf("\n"); \
     } while(0)
 
+#define PTRACE(s, ...) do {\
+        printf(s, ##__VA_ARGS__); \
+        printf("\n"); \
+    } while(0)
+
 #else
 
 #define TRACE()
 #define MSG(m, ...)
+#define PTRACE(s)
 
 #endif
 

@@ -27,7 +27,7 @@
 %token IF ELSE WHILE DO FOR IN TO TRY
 %token EXCEPT RAISE RETURN EXIT SWITCH CASE YIELD TRACE PRINT IMPORT
 %token TRUE FALSE BREAK CONTINUE
-%token ENTRY MODULE DEFAULT DOT COMMA MEMBER
+%token ENTRY MODULE DEFAULT DOT COMMA COLON
 %token CPAREN OPAREN OBLOCK CBLOCK OBRACE CBRACE
 
 %token <str> SYMBOL STRG_CONST
@@ -68,6 +68,7 @@
 %type <nterm> var_declaration
 %type <nterm> func_declaration
 %type <nterm> func_decl_parms
+%type <nterm> func_decl_parms_list
 %type <nterm> func_decl_parms_elem
 %type <nterm> bool_literal
 %type <nterm> primary
@@ -83,6 +84,14 @@
 %type <nterm> assignment
 %type <nterm> data_definition
 %type <nterm> func_content
+%type <nterm> print_statement
+%type <nterm> break_statement
+%type <nterm> cont_statement
+%type <nterm> trace_statement
+%type <nterm> yield_statement
+%type <nterm> exit_statement
+%type <nterm> return_statement
+%type <nterm> raise_statement
 %type <nterm> if_else_clause
 %type <nterm> if_clause
 %type <nterm> else_clause
@@ -119,7 +128,7 @@
 
 %%
 module
-    : MODULE SYMBOL OPAREN module_type CPAREN module_body {PTRACE("module: %s", $2);}
+    : MODULE COLON module_type module_body {PTRACE("module");}
     ;
 
 module_type
@@ -203,6 +212,7 @@ namespace_element
     | func_definition {PTRACE("namespace_element:func_definition");}
     | ctor_definition {PTRACE("namespace_element:ctor_definition");}
     | dtor_definition {PTRACE("namespace_element:dtor_definition");}
+    | var_declaration {PTRACE("namespace_element:var_declaration");}
     | scope {PTRACE("namespace_element:scope");}
     ;
 
@@ -237,13 +247,19 @@ var_declaration
     ;
 
 func_declaration
-    : type_name SYMBOL OPAREN func_decl_parms CPAREN {PTRACE("func_declaration:%s", $2);}
-    | CREATE OPAREN func_decl_parms CPAREN {PTRACE("func_declaration:CREATE");}
+    : type_name SYMBOL func_decl_parms {PTRACE("func_declaration:%s", $2);}
+    | CREATE func_decl_parms {PTRACE("func_declaration:CREATE");}
+    | DESTROY {PTRACE("func_declaration:DESTROY");}
     ;
 
 func_decl_parms
-    : func_decl_parms_elem {PTRACE("func_decl_parms:func_decl_parms_elem");}
-    | func_decl_parms COMMA func_decl_parms_elem {PTRACE("func_decl_parms:func_decl_parms");}
+    : OPAREN CPAREN {PTRACE("func_decl_parms()");}
+    | OPAREN func_decl_parms_list CPAREN {PTRACE("func_decl_parms(func_decl_parms_list)");}
+    ;
+
+func_decl_parms_list
+    : func_decl_parms_elem {PTRACE("func_decl_parms_list:func_decl_parms_elem");}
+    | func_decl_parms_list COMMA func_decl_parms_elem {PTRACE("func_decl_parms_list:func_decl_parms_list");}
     ;
 
 func_decl_parms_elem
@@ -258,6 +274,7 @@ bool_literal
 primary
     : compound_symbol {PTRACE("primary:compound_symbol");}
     | const_expression {PTRACE("primary:const_expression");}
+    | OPAREN expression CPAREN {PTRACE("primary:(e)");}
     ;
 
 const_expression
@@ -284,10 +301,13 @@ expression
     | expression DIV expression {PTRACE("expression:e / e");}
     | expression MOD expression {PTRACE("expression:e %% e");}
     | expression POW expression {PTRACE("expression:e ^ e");}
-    | NOT expression %prec UNARY {PTRACE("expression:- e");}
-    | SUB expression %prec UNARY {PTRACE("expression:! e");}
-    | OPOINT type_name CPOINT expression %prec CAST {PTRACE("expression:(type)e");}
-    | OPAREN expression CPAREN {PTRACE("expression:(e)");}
+    | NOT expression %prec UNARY {PTRACE("expression:! e");}
+    | SUB expression %prec UNARY {PTRACE("expression:- e");}
+    | cast_expr %prec CAST {PTRACE("expression:cast_expr");}
+    ;
+
+cast_expr
+    : OPOINT type_name CPOINT expression {PTRACE("cast_expr:<type>expr");}
     ;
 
 expr_list
@@ -296,11 +316,11 @@ expr_list
     ;
 
 member
-    : SYMBOL MEMBER {PTRACE("member:%s", $1);}
+    : SYMBOL COLON {PTRACE("member:%s", $1);}
     ;
 
 func_definition
-    : type_name member SYMBOL OPAREN func_decl_parms CPAREN func_block {PTRACE("func_definition:%s", $3);}
+    : type_name member SYMBOL func_decl_parms func_block {PTRACE("func_definition:%s", $3);}
     ;
 
 ctor_definition
@@ -325,7 +345,7 @@ assignment_oper
     | MOD_ASSIGN {PTRACE("assignment_oper:%%=");}
     ;
 
-assignment
+assignment /* emit: data_assignment */
     : assignment_oper expression {PTRACE("assignment");}
     ;
 
@@ -344,20 +364,52 @@ func_content
     | for_clause {PTRACE("func_content:for_clause");}
     | switch_case_clause {PTRACE("func_content:switch_case_clause");}
     | try_except_clause {PTRACE("func_content:try_except_clause");}
-    | RETURN {PTRACE("func_content:RETURN");}
-    | RETURN OPAREN CPAREN {PTRACE("func_content:RETURN()");}
-    | RETURN OPAREN expression CPAREN {PTRACE("func_content:RETURN(expr)");}
-    | RAISE OPAREN compound_symbol CPAREN {PTRACE("func_content:");}
-    | EXIT OPAREN expression CPAREN {PTRACE("func_content:EXIT");}
-    | YIELD OPAREN SYMBOL CPAREN {PTRACE("func_content:YIELD:%s", $3);}
-    | TRACE {PTRACE("func_content:TRACE");}
-    | TRACE OPAREN CPAREN {PTRACE("func_content:TRACE()");}
-    | TRACE OPAREN formatted_string CPAREN {PTRACE("func_content:TRACE(str)");}
-    | PRINT {PTRACE("func_content:PRINT");}
-    | PRINT OPAREN CPAREN {PTRACE("func_content:PRINT()");}
-    | PRINT OPAREN formatted_string CPAREN {PTRACE("func_content:PRINT(str)");}
-    | BREAK {PTRACE("func_content:BREAK");}
-    | CONTINUE {PTRACE("func_content:CONTINUE");}
+    | return_statement {PTRACE("func_content:return_statement");}
+    | raise_statement {PTRACE("func_content:raise_statement");}
+    | exit_statement {PTRACE("func_content:exit_statement");}
+    | yield_statement {PTRACE("func_content:yield_statement");}
+    | trace_statement {PTRACE("func_content:trace_statement");}
+    | print_statement {PTRACE("func_content:print_statement");}
+    | break_statement {PTRACE("func_content:break_statement");}
+    | cont_statement {PTRACE("func_content:cont_statement");}
+    ;
+
+print_statement
+    : PRINT {PTRACE("print_statement");}
+    | PRINT OPAREN CPAREN {PTRACE("print_statement()");}
+    | PRINT OPAREN formatted_string CPAREN {PTRACE("print_statement(str)");}
+    ;
+
+break_statement
+    : BREAK {PTRACE("break_statement");}
+    ;
+
+cont_statement
+    : CONTINUE {PTRACE("cont_statement");}
+    ;
+
+trace_statement
+    : TRACE {PTRACE("trace_statement");}
+    | TRACE OPAREN CPAREN {PTRACE("trace_statement()");}
+    | TRACE OPAREN formatted_string CPAREN {PTRACE("trace_statement(str)");}
+    ;
+
+yield_statement
+    : YIELD OPAREN SYMBOL CPAREN {PTRACE("yield_statement:%s", $3);}
+    ;
+
+exit_statement
+    : EXIT OPAREN expression CPAREN {PTRACE("exit_statement");}
+    ;
+
+return_statement
+    : RETURN {PTRACE("return_statement");}
+    | RETURN OPAREN CPAREN {PTRACE("return_statement()");}
+    | RETURN OPAREN expression CPAREN {PTRACE("return_statement(expr)");}
+    ;
+
+raise_statement
+    : RAISE OPAREN compound_symbol CPAREN {PTRACE("raise_statement");}
     ;
 
 if_else_clause
@@ -517,7 +569,7 @@ symbol_name (yysymbol_kind_t yysymbol)
         (yysymbol == YYSYMBOL_MOD)? "% operator" :
         (yysymbol == YYSYMBOL_DOT)? ". operator" :
         (yysymbol == YYSYMBOL_COMMA)? "," :
-        (yysymbol == YYSYMBOL_MEMBER)? ":" :
+        (yysymbol == YYSYMBOL_COLON)? ":" :
         (yysymbol == YYSYMBOL_OPOINT)? "<" :
         (yysymbol == YYSYMBOL_CPOINT)? ">" :
         (yysymbol == YYSYMBOL_CPAREN)? ")" :

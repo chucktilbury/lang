@@ -1,4 +1,4 @@
-module the_module_name (exec)
+module:exec
 
 namespace some_name {
     class flarp (asd.wer().qwe(1, 80, "stroing").butter[toast(123)]) {
@@ -8,4 +8,16 @@ import some.darn.Xtring
 import qwekj_wer_12()
 
 PUBLIC CLASS a_dumb_name_123 {
+}
+
+namespace ploot {
+    wer.aasd qwe
+    int asdf:werwer() {
+        int sdkj
+    }
+}
+
+entry {
+
+    asd.ert plooter = <unsigned>(asd.wer.asdasd()) 10 * -5
 }

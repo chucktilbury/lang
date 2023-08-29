@@ -142,7 +142,7 @@ int yycolumn = 1;
 "lt"        { return OPOINT; }
 ">"         { return CPOINT; }
 "gt"        { return CPOINT; }
-":"         { return MEMBER; }
+":"         { return COLON; }
 
     /* constructed tokens */
 [a-zA-Z_][a-zA-Z_0-9]* {

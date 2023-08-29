@@ -66,6 +66,8 @@ int yycolumn = 1;
 "boolean"       { return BOOLEAN; }
 "noth"          { return NOTHING; }
 "nothing"       { return NOTHING; }
+"inline_begin"  { return IBEGIN; }
+"inline_end"    { return IEND; }
     /* flow */
 "entry"         { return ENTRY; }
 "if"            { return IF; }
@@ -129,14 +131,15 @@ int yycolumn = 1;
 "^"         { return POW; }
 
     /* punctuation */
-"."         { return DOT; }
 ","         { return COMMA; }
+"."         { return DOT; }
 "("         { return OPAREN; }
 ")"         { return CPAREN; }
 "{"         { return OBLOCK; }
 "}"         { return CBLOCK; }
 "["         { return OBRACE; }
 "]"         { return CBRACE; }
+
     /* these are used in comparison and also for casts. */
 "<"         { return OPOINT; }
 "lt"        { return OPOINT; }
@@ -180,14 +183,12 @@ int yycolumn = 1;
 
     BEGIN(DQUOTES);
 }
-
 <DQUOTES>"\"" {
 
     yylval.str = _DUP_STR(str_raw(string));
     BEGIN(INITIAL);
     return STRG_CONST;
 }
-
 <DQUOTES>[^\\\"\n]*  { str_cat_str(string, yytext); }
 <DQUOTES>\n   { yylineno++; } /* track line numbers, but strip new line */
 <DQUOTES>\\n  { str_cat_char(string, '\n'); }
@@ -215,13 +216,11 @@ int yycolumn = 1;
 
     BEGIN(SQUOTES);
 }
-
 <SQUOTES>\' {
     yylval.str = _DUP_STR(str_raw(string));
     BEGIN(INITIAL);
     return STRG_CONST;
 }
-
 <SQUOTES>[^\\'\n]*  { str_cat_str(string, yytext); }
 <SQUOTES>\\.    { str_cat_str(string, yytext); }
 <SQUOTES>\n     {
@@ -234,9 +233,11 @@ int yycolumn = 1;
 \n          {}
 [ \t\f\r]   {}
 
+
 . {
     fprintf(stderr, "Warning: invalid character ignored: %c (%02X)\n", yytext[0], yytext[0]);
 }
+
 
 <<EOF>> {
 

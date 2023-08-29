@@ -19,5 +19,12 @@ namespace ploot {
 
 entry {
 
-    asd.ert plooter = <unsigned>(asd.wer.asdasd()) 10 * -5
+    asd.ert plooter = <unsigned>(asd.wer.asdasd()) + 10 * -5
+
+    inline_begin
+        '
+        printf("this is a string to print\n");
+        Something else\'s junk.
+        '
+    inline_end
 }

@@ -26,11 +26,11 @@
 %token NAMESPACE CLASS CREATE DESTROY
 %token IF ELSE WHILE DO FOR IN TO TRY
 %token EXCEPT RAISE RETURN EXIT SWITCH CASE YIELD TRACE PRINT IMPORT
-%token TRUE FALSE BREAK CONTINUE
+%token TRUE FALSE BREAK CONTINUE IBEGIN IEND
 %token ENTRY MODULE DEFAULT DOT COMMA COLON
 %token CPAREN OPAREN OBLOCK CBLOCK OBRACE CBRACE
 
-%token <str> SYMBOL STRG_CONST
+%token <str> SYMBOL MSYMBOL STRG_CONST IBLOCK
 %token <fnum> FLOAT_CONST
 %token <inum> INT_CONST
 %token <unum> UNSIGNED_CONST
@@ -355,6 +355,11 @@ data_definition
     ;
 
 func_content
+    : func_content_elem {PTRACE("func_content:func_content_elem");}
+    | func_content func_content_elem {PTRACE("func_content:func_content");}
+    ;
+
+func_content_elem
     : func_block {PTRACE("func_content:func_block");}
     | data_definition {PTRACE("func_content:data_definition");}
     | func_reference {PTRACE("func_content:func_reference");}
@@ -372,6 +377,11 @@ func_content
     | print_statement {PTRACE("func_content:print_statement");}
     | break_statement {PTRACE("func_content:break_statement");}
     | cont_statement {PTRACE("func_content:cont_statement");}
+    | inline_block {PTRACE("func_content:inline block");}
+    ;
+
+inline_block
+    : IBEGIN STRG_CONST IEND {PTRACE("inline_block:%s", $2);}
     ;
 
 print_statement
@@ -582,6 +592,8 @@ symbol_name (yysymbol_kind_t yysymbol)
         (yysymbol == YYSYMBOL_STRG_CONST)? "String literal" :
         (yysymbol == YYSYMBOL_FLOAT_CONST)? "Float literal" :
         (yysymbol == YYSYMBOL_INT_CONST)? "Integer literal" :
+        (yysymbol == YYSYMBOL_IBEGIN)? "Begin inline block" :
+        (yysymbol == YYSYMBOL_IEND)? "End inline block" :
         (yysymbol == YYSYMBOL_UNSIGNED_CONST)? "Unsigned literal" : "UNKNOWN");
 }
 

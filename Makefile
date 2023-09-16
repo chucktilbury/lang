@@ -6,6 +6,7 @@ OBJS	=	parser.o \
 			mem.o \
 			str.o \
 			ptrlst.o \
+			strlst.o \
 			ast.o
 
 CARGS	=	-Wall -Wextra -Wpedantic
@@ -20,7 +21,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	gcc $(CARGS) $(DEBUG) -o $(TARGET) $(OBJS)
 
-parser.c parser.h: parser.y ast.h
+parser.c parser.h: parser.y ast.h ast.c
 	bison -tvdo parser.c parser.y
 
 scanner.c: scanner.l
@@ -29,8 +30,8 @@ scanner.c: scanner.l
 scanner.o: scanner.c parser.h
 	gcc $(CARGS) $(DEBUG) $(EXT) -c -o $@ $<
 
-ast.c ast.h nterms.txt: parser.y gen_ast.py
-	python3 gen_ast.py
+ast.c: gen_ast.py
+	python gen_ast.py
 
 ast.o: ast.c ast.h
 parser.o: parser.c
@@ -40,7 +41,4 @@ str.o: str.c str.h
 ptrlst.o: ptrlst.c ptrlst.h
 
 clean:
-	rm -f $(TARGET) $(OBJS) \
-			parser.c parser.h parser.output \
-			scanner.c ast_types.h ast_data.h \
-			nterms.txt ast.c ast.h
+	rm -f $(TARGET) $(OBJS) parser.c parser.h parser.output scanner.c *.bak

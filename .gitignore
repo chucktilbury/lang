@@ -2,10 +2,10 @@ parser.c
 parser.h
 parser.output
 scanner.c
-ast.c
-ast.h
-nterms.txt
 lang
+*.bak
+old/
+grammar/
 
 # Prerequisites
 *.d

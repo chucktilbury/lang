@@ -2,9 +2,9 @@
 #include "ptrlst.h"
 #include "mem.h"
 
-ptrlst_t* ptrlst_create() {
+PTRLST* ptrlst_create() {
 
-    ptrlst_t* lst = _ALLOC_T(ptrlst_t);
+    PTRLST* lst = _ALLOC_T(PTRLST);
     lst->len = 0;
     lst->cap = 1 << 3;
     lst->lst = _ALLOC_ARRAY(void*, lst->cap);
@@ -12,7 +12,7 @@ ptrlst_t* ptrlst_create() {
     return lst;
 }
 
-void ptrlst_destroy(ptrlst_t* lst) {
+void ptrlst_destroy(PTRLST* lst) {
 
     if(lst != NULL) {
         _FREE(lst->lst);
@@ -20,7 +20,7 @@ void ptrlst_destroy(ptrlst_t* lst) {
     }
 }
 
-void ptrlst_add(ptrlst_t* lst, void* ptr) {
+void ptrlst_add(PTRLST* lst, void* ptr) {
 
     if(lst->len+1 > lst->cap) {
         lst->cap <<= 1;
@@ -30,5 +30,3 @@ void ptrlst_add(ptrlst_t* lst, void* ptr) {
     lst->lst[lst->len] = ptr;
     lst->len++;
 }
-
-

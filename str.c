@@ -6,15 +6,9 @@
 #include "str.h"
 #include "mem.h"
 
-typedef struct {
-    char* buf;
-    size_t len;
-    size_t cap;
-} str_t;
+STR* str_create(const char* str) {
 
-STR_T str_create(const char* str) {
-
-    str_t* ptr = _ALLOC_T(str_t);
+    STR* ptr = _ALLOC_T(STR);
     ptr->len = 0;
     ptr->cap = 1 << 3;
     ptr->buf = _ALLOC(ptr->cap);
@@ -25,56 +19,54 @@ STR_T str_create(const char* str) {
     return ptr;
 }
 
-void str_destroy(STR_T ptr) {
+void str_destroy(STR* ptr) {
 
     if(ptr != NULL) {
-        if(((str_t*)ptr)->buf != NULL)
-            _FREE(((str_t*)ptr)->buf);
+        if(ptr->buf != NULL)
+            _FREE(ptr->buf);
         _FREE(ptr);
     }
 }
 
-STR_T str_copy(STR_T ptr) {
+STR* str_copy(STR* ptr) {
 
-    return str_create(((str_t*)ptr)->buf);
+    return str_create(ptr->buf);
 }
 
-void str_cat_char(STR_T ptr, int ch) {
+void str_cat_char(STR* ptr, int ch) {
 
-    str_t* p = (str_t*)ptr;
-    if(p->len+2 > p->cap) {
-        p->cap <<= 1;
-        p->buf = _REALLOC_ARRAY(p->buf, char, p->cap);
+    if(ptr->len+2 > ptr->cap) {
+        ptr->cap <<= 1;
+        ptr->buf = _REALLOC_ARRAY(ptr->buf, char, ptr->cap);
     }
 
-    p->buf[p->len] = (char)ch;
-    p->len++;
-    p->buf[p->len] = '\0';
+    ptr->buf[ptr->len] = (char)ch;
+    ptr->len++;
+    ptr->buf[ptr->len] = '\0';
 }
 
-void str_cat_str(STR_T ptr, const char* str) {
+void str_cat_str(STR* ptr, const char* str) {
 
-    str_t* p = (str_t*)ptr;
     size_t len = strlen(str);
 
-    if(p->len+len > p->cap) {
-        while(p->len+len+1 > p->cap)
-            p->cap <<= 1;
-        p->buf = _REALLOC_ARRAY(p->buf, char, p->cap);
+    if(ptr->len+len > ptr->cap) {
+        while(ptr->len+len+1 > ptr->cap)
+            ptr->cap <<= 1;
+        ptr->buf = _REALLOC_ARRAY(ptr->buf, char, ptr->cap);
     }
 
-    memcpy(&p->buf[p->len], str, len+1);
-    p->len += len;
+    memcpy(&ptr->buf[ptr->len], str, len+1);
+    ptr->len += len;
 
 }
 
-const char* str_raw(STR_T ptr) {
+const char* str_raw(STR* ptr) {
 
-    return ((str_t*)ptr)->buf;
+    return ptr->buf;
 }
 
-void str_clear(STR_T ptr) {
+void str_clear(STR* ptr) {
 
-    ((str_t*)ptr)->len = 0;
-    memset(((str_t*)ptr)->buf, 0, ((str_t*)ptr)->cap);
+    ptr->len = 0;
+    memset(ptr->buf, 0, ptr->cap);
 }

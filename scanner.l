@@ -1,13 +1,14 @@
 %{
 
 #include "str.h"
+#include "strlst.h"
 #include "mem.h"
 #include "parser.h"
 
-static STR_T string = NULL;
+static STR* string = NULL;
 
 typedef struct _file_stack_ {
-    STR_T fname;
+    STR* fname;
     int line;
     int col;
     FILE* fptr;
@@ -35,6 +36,7 @@ int yycolumn = 1;
 /* state definitions */
 %x SQUOTES
 %x DQUOTES
+%x CSYMBOL
 
 %option noinput nounput
 %option yylineno
@@ -47,6 +49,7 @@ int yycolumn = 1;
 "namespace"     { return NAMESPACE; }
 "class"         { return CLASS; }
 "import"        { return IMPORT; }
+"as"            { return AS; }
 "public"        { return PUBLIC; }
 "private"       { return PRIVATE; }
 "protected"     { return PROTECTED; }
@@ -94,12 +97,6 @@ int yycolumn = 1;
     /* boolean constants */
 "true"          { return TRUE; }
 "false"         { return FALSE; }
-    /* module definitions */
-"module"        { return MODULE; }
-"executable"    { return EXEC; }
-"exec"          { return EXEC; }
-"static"        { return STATIC; }
-"dynamic"       { return DYNAMIC; }
 
 "=="            { return EQU; }
 "equ"           { return EQU; }
@@ -149,16 +146,31 @@ int yycolumn = 1;
 
     /* constructed tokens */
 [a-zA-Z_][a-zA-Z_0-9]* {
-    if(string != NULL) {
-        str_clear(string);
-        str_cat_str(string, yytext);
-    }
-    else
-        string = str_create(yytext);
-
-    yylval.str = _DUP_STR(str_raw(string));
+    yylval.sym = strlst_create();
+    strlst_add(yylval.sym, _DUP_STR(yytext));
     return SYMBOL;
 }
+
+[a-zA-Z_][a-zA-Z_0-9]*[\.] {
+        yylval.sym = strlst_create();
+        char* s = _DUP_STR(yytext);
+        s[strlen(s)-1] = 0;
+        strlst_add(yylval.sym, s);
+        BEGIN(CSYMBOL);
+    }
+
+<CSYMBOL>[a-zA-Z_][a-zA-Z_0-9]*[\.] {
+        char* s = _DUP_STR(yytext);
+        s[strlen(s)-1] = 0;
+        strlst_add(yylval.sym, s);
+    }
+
+<CSYMBOL>[a-zA-Z_][a-zA-Z_0-9]* {
+        strlst_add(yylval.sym, _DUP_STR(yytext));
+        BEGIN(INITIAL);
+        return COMPOUND;
+    }
+
 
 [0-9]+ {
     yylval.inum = strtol(yytext, NULL, 10);
@@ -185,7 +197,8 @@ int yycolumn = 1;
 }
 <DQUOTES>"\"" {
 
-    yylval.str = _DUP_STR(str_raw(string));
+    //yylval.str = _DUP_STR(str_raw(string));
+    yylval.str = str_copy(string);
     BEGIN(INITIAL);
     return STRG_CONST;
 }
@@ -217,7 +230,8 @@ int yycolumn = 1;
     BEGIN(SQUOTES);
 }
 <SQUOTES>\' {
-    yylval.str = _DUP_STR(str_raw(string));
+    //yylval.str = _DUP_STR(str_raw(string));
+    yylval.str = str_copy(string);
     BEGIN(INITIAL);
     return STRG_CONST;
 }

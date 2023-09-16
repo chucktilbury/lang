@@ -9,12 +9,13 @@
 
 #define MSG(m, ...) do { \
         printf("msg: "); \
-        printf((m), ##__VA_ARGS__); \
+        printf((m), ## __VA_ARGS__); \
         printf("\n"); \
     } while(0)
 
 #define PTRACE(s, ...) do {\
-        printf(s, ##__VA_ARGS__); \
+        printf(">>> "); \
+        printf(s, ## __VA_ARGS__); \
         printf("\n"); \
     } while(0)
 

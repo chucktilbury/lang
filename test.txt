@@ -1,11 +1,11 @@
-module:exec
+
 
 namespace some_name {
-    class flarp (asd.wer().qwe(1, 80, "stroing").butter[toast(123)]) {
+    class flarp (asd.wer.qwe) {
     }
 }
-import some.darn.Xtring
-import qwekj_wer_12()
+import some.darn.Xtring as posertrove
+import qwekj_wer_12
 
 PUBLIC CLASS a_dumb_name_123 {
 }
@@ -13,14 +13,15 @@ PUBLIC CLASS a_dumb_name_123 {
 namespace ploot {
     wer.aasd qwe
     int asdf:werwer() {
-        int sdkj
+        int sdkj = sdf().assd[asd[12]]['asdftr'(aspd.er, 123, axsd[1])].a12sd
     }
 }
 
 entry {
 
-    asd.ert plooter = <unsigned>(asd.wer.asdasd()) + 10 * -5
-
+    asd.ert ()
+    plooter.asdf = <unsigned>(asd.wer.asdasd()) + 10 * -5
+    zump.arse.oiu[12] = 88 + 2 / 3
     inline_begin
         '
         printf("this is a string to print\n");

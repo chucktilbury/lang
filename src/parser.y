@@ -5,19 +5,23 @@
 %{
 #include <stdio.h>
 #include <stdint.h>
+#include "util.h"
 #include "log.h"
-#include "strlst.h"
-#include "str.h"
 #include "ast.h"
 #include "scanner.h"
 
 //ast_module_t* ast_module_root = NULL;
 
+static const char* strlst_raw(StrList* ptr) {
+
+    return raw_string(peek_str_list(ptr));
+}
+
 %}
 
 %union {
-    STRLST* sym;
-    STR* str;
+    StrList* sym;
+    Str* str;
     double fnum;
     int64_t inum;
     uint64_t unum;
@@ -614,7 +618,7 @@ func_content_elem
 
 inline_block
     : IBEGIN STRG_CONST IEND {
-            PTRACE("inline_block:%s", str_raw($2));
+            PTRACE("inline_block:%s", raw_string($2));
         }
     ;
 

@@ -1,14 +1,12 @@
 %{
 
-#include "str.h"
-#include "strlst.h"
-#include "mem.h"
+#include "util.h"
 #include "parser.h"
 
-static STR* string = NULL;
+static Str* string = NULL;
 
 typedef struct _file_stack_ {
-    STR* fname;
+    Str* fname;
     int line;
     int col;
     FILE* fptr;
@@ -146,27 +144,27 @@ int yycolumn = 1;
 
     /* constructed tokens */
 [a-zA-Z_][a-zA-Z_0-9]* {
-    yylval.sym = strlst_create();
-    strlst_add(yylval.sym, _DUP_STR(yytext));
+    yylval.sym = create_str_list();
+    add_str_list(yylval.sym, create_string(yytext));
     return SYMBOL;
 }
 
 [a-zA-Z_][a-zA-Z_0-9]*[\.] {
-        yylval.sym = strlst_create();
-        char* s = _DUP_STR(yytext);
-        s[strlen(s)-1] = 0;
-        strlst_add(yylval.sym, s);
+        yylval.sym = create_str_list();
+        Str* s = create_string(yytext);
+        truncate_string(s, -1);
+        add_str_list(yylval.sym, s);
         BEGIN(CSYMBOL);
     }
 
 <CSYMBOL>[a-zA-Z_][a-zA-Z_0-9]*[\.] {
-        char* s = _DUP_STR(yytext);
-        s[strlen(s)-1] = 0;
-        strlst_add(yylval.sym, s);
+        Str* s = create_string(yytext);
+        truncate_string(s, -1);
+        add_str_list(yylval.sym, s);
     }
 
 <CSYMBOL>[a-zA-Z_][a-zA-Z_0-9]* {
-        strlst_add(yylval.sym, _DUP_STR(yytext));
+        add_str_list(yylval.sym, create_string(yytext));
         BEGIN(INITIAL);
         return COMPOUND;
     }
@@ -189,56 +187,54 @@ int yycolumn = 1;
 
 "\"" {
     if(string == NULL)
-        string = str_create(NULL);
+        string = create_string(NULL);
     else
-        str_clear(string);
+        truncate_string(string, 0);
 
     BEGIN(DQUOTES);
 }
 <DQUOTES>"\"" {
 
-    //yylval.str = _DUP_STR(str_raw(string));
-    yylval.str = str_copy(string);
+    yylval.str = copy_string(string);
     BEGIN(INITIAL);
     return STRG_CONST;
 }
-<DQUOTES>[^\\\"\n]*  { str_cat_str(string, yytext); }
+<DQUOTES>[^\\\"\n]*  { add_string_char(string, yytext[0]); }
 <DQUOTES>\n   { yylineno++; } /* track line numbers, but strip new line */
-<DQUOTES>\\n  { str_cat_char(string, '\n'); }
-<DQUOTES>\\r  { str_cat_char(string, '\r'); }
-<DQUOTES>\\e  { str_cat_char(string, '\x1b'); }
-<DQUOTES>\\t  { str_cat_char(string, '\t'); }
-<DQUOTES>\\b  { str_cat_char(string, '\b'); }
-<DQUOTES>\\f  { str_cat_char(string, '\f'); }
-<DQUOTES>\\v  { str_cat_char(string, '\v'); }
-<DQUOTES>\\\\ { str_cat_char(string, '\\'); }
-<DQUOTES>\\\" { str_cat_char(string, '\"'); }
-<DQUOTES>\\\' { str_cat_char(string, '\''); }
-<DQUOTES>\\\? { str_cat_char(string, '\?'); }
-<DQUOTES>\\.  { str_cat_char(string, yytext[1]); }
+<DQUOTES>\\n  { add_string_char(string, '\n'); }
+<DQUOTES>\\r  { add_string_char(string, '\r'); }
+<DQUOTES>\\e  { add_string_char(string, '\x1b'); }
+<DQUOTES>\\t  { add_string_char(string, '\t'); }
+<DQUOTES>\\b  { add_string_char(string, '\b'); }
+<DQUOTES>\\f  { add_string_char(string, '\f'); }
+<DQUOTES>\\v  { add_string_char(string, '\v'); }
+<DQUOTES>\\\\ { add_string_char(string, '\\'); }
+<DQUOTES>\\\" { add_string_char(string, '\"'); }
+<DQUOTES>\\\' { add_string_char(string, '\''); }
+<DQUOTES>\\\? { add_string_char(string, '\?'); }
+<DQUOTES>\\.  { add_string_char(string, yytext[1]); }
 <DQUOTES>\\[xX][0-9a-fA-F]{1,3} {
-    str_cat_char(string, (char)strtol(yytext + 2, 0, 16));
+    add_string_char(string, (char)strtol(yytext + 2, 0, 16));
 }
 
     /* single quoted strings are absolute literals */
 \'  {
     if(string == NULL)
-        string = str_create(NULL);
+        string = create_string(NULL);
     else
-        str_clear(string);
+        truncate_string(string, 0);
 
     BEGIN(SQUOTES);
 }
 <SQUOTES>\' {
-    //yylval.str = _DUP_STR(str_raw(string));
-    yylval.str = str_copy(string);
+    yylval.str = copy_string(string);
     BEGIN(INITIAL);
     return STRG_CONST;
 }
-<SQUOTES>[^\\'\n]*  { str_cat_str(string, yytext); }
-<SQUOTES>\\.    { str_cat_str(string, yytext); }
+<SQUOTES>[^\\'\n]*  { add_string_str(string, yytext); }
+<SQUOTES>\\.    { add_string_str(string, yytext); }
 <SQUOTES>\n     {
-    str_cat_str(string, yytext);
+    add_string_char(string, yytext[0]);
     yylineno++;
 } /* don't strip new lines */
 
@@ -258,7 +254,7 @@ int yycolumn = 1;
     incl_depth--;
 
     FileStack* tmp = fstack;
-    str_destroy(tmp->fname);
+    destroy_string(tmp->fname);
     fclose(tmp->fptr);
     fstack = fstack->next;
     _FREE(tmp);
@@ -283,12 +279,11 @@ int open_file(const char *fname) {
     incl_depth++;
 
     FileStack* fs = _ALLOC_T(FileStack);
-    fs->fname = str_create(fname);
+    fs->fname = create_string(fname);
     fs->line = 1;
     fs->col = 1;
     fs->next = NULL;
 
-    // file_name = _copy_str(fname);
     yyin = fopen(fname, "r");
     if(yyin == NULL) {
         fprintf(stderr, "fatal error: cannot open input file: %s: %s\n", fname,
@@ -329,7 +324,7 @@ int get_col_no() {
 const char* get_file_name() {
 
     if(fstack != NULL)
-        return str_raw(fstack->fname);
+        return raw_string(fstack->fname);
     else
         return "no file open";
 }

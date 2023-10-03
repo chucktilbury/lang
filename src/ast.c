@@ -2,8 +2,7 @@
 #include <stdint.h>
 
 #include "ast.h"
-#include "mem.h"
-#include "str.h"
+#include "util.h"
 #include "log.h"
 #include "scanner.h"
 

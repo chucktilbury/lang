@@ -14,6 +14,9 @@ all: $(TARGET)
 $(TARGET): $(UTIL) $(GC)
 	make -C src && cp src/lang bin
 $(UTIL):
-	make -C util && cp util/libutil.a bin
+	make -C util
 
-
+clean:
+	rm -rf bin
+	make -C util clean
+	make -C src clean

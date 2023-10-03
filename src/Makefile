@@ -3,17 +3,13 @@ TARGET	=	lang
 OBJS	=	parser.o \
 			scanner.o \
 			main.o \
-			mem.o \
-			str.o \
-			ptrlst.o \
-			strlst.o \
 			ast.o
 
 EXT		=	-Wno-unused-variable -Wno-sign-compare
-LIBS	=	-lgc -lutil
-LDIR	=	-Lutil
-IDIR	=	-Iutil
-DEBUG	=	-g -DENA_TRACE
+LIBS	=	-lutil -lgc
+LDIR	=	-L../util
+IDIR	=	-I../util
+DEBUG	=	-g -DENA_TRACE -DDEBUG_PARSER=1
 CARGS	=	-Wall -Wextra -Wpedantic $(IDIR) $(DEBUG)
 
 all: $(TARGET)
@@ -39,9 +35,6 @@ ast.c: gen_ast.py
 ast.o: ast.c ast.h
 parser.o: parser.c
 main.o: main.c parser.h
-mem.o: mem.c mem.h
-str.o: str.c str.h
-ptrlst.o: ptrlst.c ptrlst.h
 
 clean:
 	rm -f $(TARGET) $(OBJS) parser.c parser.h parser.output scanner.c *.bak

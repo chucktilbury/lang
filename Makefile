@@ -1,44 +1,19 @@
+make_dirs := $(shell mkdir -p bin)
 
-TARGET	=	lang
-OBJS	=	parser.o \
-			scanner.o \
-			main.o \
-			mem.o \
-			str.o \
-			ptrlst.o \
-			strlst.o \
-			ast.o
+TARGET	=	bin/lang
+UTIL	=	util/libutil.a
 
-CARGS	=	-Wall -Wextra -Wpedantic
-DEBUG	=	-g -DENA_TRACE
-EXT	=	-Wno-unused-variable -Wno-sign-compare
+DEBUG	=	-g
+EXT		=	-Wno-unused-variable -Wno-sign-compare
+CONFIG	=	-DENA_TRACE -DUSE_GC -lgc
+LIBDIRS	=	-L.
+LIBS	=	-lutil -lgc
+CARGS	=	$(CONFIG) -Wall -Wextra -Wpedantic
 
 all: $(TARGET)
+$(TARGET): $(UTIL) $(GC)
+	make -C src && cp src/lang bin
+$(UTIL):
+	make -C util && cp util/libutil.a bin
 
-%.o:%.c
-	gcc $(CARGS) $(DEBUG) -c -o $@ $<
 
-$(TARGET): $(OBJS)
-	gcc $(CARGS) $(DEBUG) -o $(TARGET) $(OBJS)
-
-parser.c parser.h: parser.y ast.h ast.c
-	bison -tvdo parser.c parser.y
-
-scanner.c: scanner.l
-	flex -io scanner.c scanner.l
-
-scanner.o: scanner.c parser.h
-	gcc $(CARGS) $(DEBUG) $(EXT) -c -o $@ $<
-
-ast.c: gen_ast.py
-	python gen_ast.py
-
-ast.o: ast.c ast.h
-parser.o: parser.c
-main.o: main.c parser.h
-mem.o: mem.c mem.h
-str.o: str.c str.h
-ptrlst.o: ptrlst.c ptrlst.h
-
-clean:
-	rm -f $(TARGET) $(OBJS) parser.c parser.h parser.output scanner.c *.bak

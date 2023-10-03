@@ -47,6 +47,7 @@
 
 %define parse.error custom
 %locations
+
 %glr-parser
 %expect-rr 1
 

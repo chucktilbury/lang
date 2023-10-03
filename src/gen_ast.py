@@ -107,9 +107,7 @@ def emit_ast_header(data):
 
         fp.write("\n")
         fp.write("typedef enum {\n")
-        #for item in data['tokens']:
-        #    if data['tokens'][item] != 'terminal':
-        #        fp.write("    AST_%s,\n"%(item))
+
         for item in data['rules']:
             fp.write("    AST_%s,\n"%(item.upper()))
         fp.write("} ast_type_t;\n")
@@ -145,7 +143,7 @@ def emit_ast_header(data):
             fp.write("%%type <nterm> %s\n"%(item))
         fp.write("*/\n")
 
-def emit_ast_src():
+def emit_ast_src(data):
     if os.path.exists("ast.c"):
         if os.path.exists("ast.c.bak"):
             os.remove("ast.c.bak")
@@ -183,9 +181,9 @@ if __name__ == '__main__':
     t = read_tokens()
     r = read_rules(t)
     data = {'tokens':t, 'rules':r}
-    #pp(data)
+    pp(data)
 
     emit_ast_header(data)
-    emit_ast_src()
+    emit_ast_src(data)
 
     print("%d tokens and %d rules"%(len(data['tokens']), len(data['rules'])))

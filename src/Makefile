@@ -38,3 +38,6 @@ main.o: main.c parser.h
 
 clean:
 	rm -f $(TARGET) $(OBJS) parser.c parser.h parser.output scanner.c *.bak
+
+format: clean
+	clang-format -i main.c ast.c ast.h

@@ -1,10 +1,10 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "ast.h"
-#include "util.h"
 #include "log.h"
 #include "scanner.h"
+#include "util.h"
 
 /*
  *  module
@@ -156,7 +156,8 @@ struct _ast_compound_reference_* create_compound_reference() {
 struct _ast_compound_reference_element_* create_compound_reference_element() {
 
     TRACE();
-    struct _ast_compound_reference_element_* ptr = _ALLOC_T(struct _ast_compound_reference_element_);
+    struct _ast_compound_reference_element_* ptr =
+    _ALLOC_T(struct _ast_compound_reference_element_);
     ptr->type.type = AST_COMPOUND_REFERENCE_ELEMENT;
     ptr->type.col = get_col_no();
     ptr->type.line = get_line_no();
@@ -1370,4 +1371,3 @@ struct _ast_except_clause_final_* create_except_clause_final() {
 
     return ptr;
 }
-

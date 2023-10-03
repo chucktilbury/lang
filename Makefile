@@ -20,3 +20,7 @@ clean:
 	rm -rf bin
 	make -C util clean
 	make -C src clean
+
+format:
+	make -C util format
+	make -C src format

@@ -3,20 +3,23 @@
 
 #ifdef ENA_TRACE
 
-#define TRACE()   do { \
+#define TRACE()                          \
+    do {                                 \
         printf("trace: %s\n", __func__); \
-    }while(0)
-
-#define MSG(m, ...) do { \
-        printf("msg: "); \
-        printf((m), ## __VA_ARGS__); \
-        printf("\n"); \
     } while(0)
 
-#define PTRACE(s, ...) do {\
-        printf(">>> "); \
-        printf(s, ## __VA_ARGS__); \
-        printf("\n"); \
+#define MSG(m, ...)                 \
+    do {                            \
+        printf("msg: ");            \
+        printf((m), ##__VA_ARGS__); \
+        printf("\n");               \
+    } while(0)
+
+#define PTRACE(s, ...)            \
+    do {                          \
+        printf(">>> ");           \
+        printf(s, ##__VA_ARGS__); \
+        printf("\n");             \
     } while(0)
 
 #else

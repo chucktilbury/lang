@@ -5,20 +5,15 @@ OBJS	=	parser.o \
 			main.o \
 			ast.o
 
-EXT		=	-Wno-unused-variable -Wno-sign-compare
-LIBS	=	-lutil -lgc
-LDIR	=	-L../util
-IDIR	=	-I../util
-DEBUG	=	-g -DENA_TRACE -DDEBUG_PARSER=1
-CARGS	=	-Wall -Wextra -Wpedantic $(IDIR) $(DEBUG)
+include ../common.make
 
 all: $(TARGET)
 
 %.o:%.c
-	gcc $(CARGS) -c -o $@ $<
+	gcc $(BOPTS) -c -o $@ $<
 
 $(TARGET): $(OBJS)
-	gcc $(CARGS) $(LDIR) -o $(TARGET) $(OBJS) $(LIBS)
+	gcc $(LOPTS) -o $(TARGET) $(OBJS) $(LIBS)
 
 parser.c parser.h: parser.y ast.h ast.c
 	bison -tvdo parser.c parser.y
@@ -27,7 +22,7 @@ scanner.c: scanner.l
 	flex -io scanner.c scanner.l
 
 scanner.o: scanner.c parser.h
-	gcc $(CARGS) $(EXT) -c -o $@ $<
+	gcc $(BOPTS) $(WARNS) -c -o $@ $<
 
 ast.c: gen_ast.py
 	python gen_ast.py
@@ -40,4 +35,4 @@ clean:
 	rm -f $(TARGET) $(OBJS) parser.c parser.h parser.output scanner.c *.bak
 
 format: clean
-	clang-format -i main.c ast.c ast.h
+	clang-format -i *.c *.h

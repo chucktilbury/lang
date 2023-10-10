@@ -1,0 +1,20 @@
+;------------------------------------------------------------------------------
+;
+;   A class can be defined inside a namespace or outside of it. This test
+;   verifies that the syntax for a class definition is accepted.
+;
+;------------------------------------------------------------------------------
+
+namespace name {
+
+    class name {}
+    class name() {}
+    class name(name) {}
+    class name(name.name.name) {}
+
+}
+
+class name {}
+class name() {}
+class name(name) {}
+class name(name.name.name) {}

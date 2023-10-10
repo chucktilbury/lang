@@ -1,0 +1,30 @@
+;------------------------------------------------------------------------------
+;
+;   Verify that all of the syntax that can be inside a namespace is accepted.
+;
+;------------------------------------------------------------------------------
+
+
+namespace a_name {
+    class a_name {}
+    class name {}
+
+    int name:name (int name, string name) {}
+
+    name.name.name name:name(some_type name, another.type name) {}
+
+    name:create(list lst, dict dictio) {}
+
+    name:destroy {}
+
+    public
+    private
+    protected
+
+    int name
+
+    namespace another_name {
+        class a_name {}
+        class name {}
+    }
+}

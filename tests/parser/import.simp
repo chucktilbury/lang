@@ -1,0 +1,13 @@
+;------------------------------------------------------------------------------
+;
+;   Verify that all permutations of the import statement are accepted.
+;
+;------------------------------------------------------------------------------
+
+import name
+import name as name
+import name.name.name
+import name.name.name as name
+
+; note that import statements are not accepted anywhere but in the root
+; namespace.

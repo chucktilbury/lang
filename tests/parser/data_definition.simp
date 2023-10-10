@@ -1,0 +1,22 @@
+;------------------------------------------------------------------------------
+;
+;   Test that a nested function block with anything in it is accepted.
+;
+;------------------------------------------------------------------------------
+
+
+class name () {
+    int name1()
+}
+
+int name:name1() {
+
+    int name2 = 1+1 ; assignment
+    int name3 += 1+2
+    int name4 %= 1+name5.name6
+    ; FIXME this statement should be legal, but it's not
+    bacon.eggs.are.good name007 = 2+4
+
+    int name
+}
+

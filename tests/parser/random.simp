@@ -22,10 +22,9 @@ entry {
     asd.ert ()
     plooter.asdf = <unsigned>(asd.wer.asdasd()) + 10 * -5
     zump.arse.oiu[12] = 88 + 2 / 3
-    inline_begin
+    inline
         '
         printf("this is a string to print\n");
         Something else\'s junk.
         '
-    inline_end
 }

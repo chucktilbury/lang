@@ -3,9 +3,9 @@
 #include <stdio.h>
 
 #include "util.h"
-#include "ast.h"
 #include "parser.h"
 #include "scanner.h"
+#include "ast.h"
 
 // extern ast_module_t* ast_module_root;
 
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
 
     open_file(get_cmd_raw(cl, "file"));
 
-    if(depth > 1)
+    if(depth >= 1)
         yyparse();
 
     // printf("\nParser ptr: %p (%d)\n", (void*)ast_module_root, TYPEOF(ast_module_root));

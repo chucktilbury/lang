@@ -1,0 +1,39 @@
+;------------------------------------------------------------------------------
+;
+;   Verify that the syntax in the contents of a class are propertly accepted.
+;
+;------------------------------------------------------------------------------
+
+class name (name) {
+
+    private
+    public
+    protected
+    int name
+    some.compound.name name
+    nothing name()
+    dict name(int name)
+    string name(int name, string name, some.other.name name)
+}
+
+namespace name {
+
+    private
+    public
+    protected
+    class name(name.name) {
+
+        private
+        public
+        protected
+        int name
+        some.compound.name name
+        nothing name()
+        dict name(int name)
+        string name(int name, string name, some.other.name name)
+        create()
+        create(int name, int name)
+        destroy
+    }
+}
+

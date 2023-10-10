@@ -1,0 +1,23 @@
+;------------------------------------------------------------------------------
+;
+;   This test demonstrates the reduce/reduce conflict in the parser.
+;
+;   When the glr-parser option is set for bison, this produces an error,
+;   however, when it is not set, no error is produced, but the construct is
+;   parsed incorrecty. So the question is how to fix it so that the grammar is
+;   no longer ambiguous. The problem is that the grammar cannot tell the
+;   difference between a compound_name and a compound_reference for the type
+;   name in the data definition. Currently the compound_name is parsed as a
+;   compound_reference. That is okay, but it requires that the difference is
+;   checked outside of the actual parser. A compound_name cannot have
+;   references to functions or to arrays. A compound_reference may have them,
+;   optionally. So the answer for a GLR parser is to properly set the
+;   precedence of the statements.
+;
+;------------------------------------------------------------------------------
+
+int name :name() {
+
+    ; data definition without assignment
+    this.is.a.test some_name
+}

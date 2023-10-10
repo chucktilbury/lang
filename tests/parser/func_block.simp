@@ -1,0 +1,18 @@
+;------------------------------------------------------------------------------
+;
+;   Test that a nested function block with anything in it is accepted.
+;
+;------------------------------------------------------------------------------
+
+
+class name () {
+    int name1()
+}
+
+int name:name1() {
+
+    int name2 = 1+1
+    {
+        int name3 = 2+2
+    }
+}

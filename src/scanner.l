@@ -67,8 +67,7 @@ int yycolumn = 1;
 "boolean"       { return BOOLEAN; }
 "noth"          { return NOTHING; }
 "nothing"       { return NOTHING; }
-"inline_begin"  { return IBEGIN; }
-"inline_end"    { return IEND; }
+"inline"        { return INLINE; }
     /* flow */
 "entry"         { return ENTRY; }
 "if"            { return IF; }
@@ -144,31 +143,31 @@ int yycolumn = 1;
 
     /* constructed tokens */
 [a-zA-Z_][a-zA-Z_0-9]* {
-    yylval.sym = create_str_list();
-    add_str_list(yylval.sym, create_string(yytext));
+    //yylval.sym = create_str_list();
+    //add_str_list(yylval.sym, create_string(yytext));
+    yylval.str = _DUP_STR(yytext);
     return SYMBOL;
 }
 
+   /*
 [a-zA-Z_][a-zA-Z_0-9]*[\.] {
-        yylval.sym = create_str_list();
-        Str* s = create_string(yytext);
-        truncate_string(s, -1);
-        add_str_list(yylval.sym, s);
-        BEGIN(CSYMBOL);
-    }
-
+    yylval.sym = create_str_list();
+    Str* s = create_string(yytext);
+    truncate_string(s, -1);
+    add_str_list(yylval.sym, s);
+    BEGIN(CSYMBOL);
+}
 <CSYMBOL>[a-zA-Z_][a-zA-Z_0-9]*[\.] {
-        Str* s = create_string(yytext);
-        truncate_string(s, -1);
-        add_str_list(yylval.sym, s);
-    }
-
+    Str* s = create_string(yytext);
+    truncate_string(s, -1);
+    add_str_list(yylval.sym, s);
+}
 <CSYMBOL>[a-zA-Z_][a-zA-Z_0-9]* {
-        add_str_list(yylval.sym, create_string(yytext));
-        BEGIN(INITIAL);
-        return COMPOUND;
-    }
-
+    add_str_list(yylval.sym, create_string(yytext));
+    BEGIN(INITIAL);
+    return COMPOUND;
+}
+    */
 
 [0-9]+ {
     yylval.inum = strtol(yytext, NULL, 10);
@@ -195,7 +194,8 @@ int yycolumn = 1;
 }
 <DQUOTES>"\"" {
 
-    yylval.str = copy_string(string);
+    //yylval.str = copy_string(string);
+    yylval.str = _DUP_STR(raw_string(string));
     BEGIN(INITIAL);
     return STRG_CONST;
 }
@@ -227,7 +227,8 @@ int yycolumn = 1;
     BEGIN(SQUOTES);
 }
 <SQUOTES>\' {
-    yylval.str = copy_string(string);
+    //yylval.str = copy_string(string);
+    yylval.str = _DUP_STR(raw_string(string));
     BEGIN(INITIAL);
     return STRG_CONST;
 }

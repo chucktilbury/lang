@@ -14,14 +14,25 @@
 
 static const char* strlst_raw(StrList* ptr) {
 
-    return raw_string(peek_str_list(ptr));
+    Str* s = create_string(NULL);
+    Str* tmp;
+
+    reset_str_list(ptr);
+    add_string_Str(s, iterate_str_list(ptr));
+    while(NULL != (tmp = iterate_str_list(ptr))) {
+        add_string_char(s, '.');
+        add_string_Str(s, tmp);
+    }
+
+    return raw_string(s); // assumes using GC....
 }
 
 %}
 
 %union {
     StrList* sym;
-    Str* str;
+    //Str* str;
+    const char* str;
     double fnum;
     int64_t inum;
     uint64_t unum;
@@ -32,12 +43,13 @@ static const char* strlst_raw(StrList* ptr) {
 %token NAMESPACE CLASS CREATE DESTROY
 %token IF ELSE WHILE DO FOR IN TO TRY
 %token EXCEPT RAISE RETURN EXIT SWITCH CASE YIELD TRACE PRINT IMPORT
-%token TRUE FALSE BREAK CONTINUE IBEGIN IEND
+%token TRUE FALSE BREAK CONTINUE INLINE
 %token ENTRY DEFAULT DOT COMMA COLON AS
 %token CPAREN OPAREN OBLOCK CBLOCK OBRACE CBRACE
+    // COMPOUND
+    //%token <sym> SYMBOL
 
-%token <sym> SYMBOL COMPOUND
-%token <str> STRG_CONST
+%token <str> STRG_CONST SYMBOL
 %token <fnum> FLOAT_CONST
 %token <inum> INT_CONST
 %token <unum> UNSIGNED_CONST
@@ -48,12 +60,13 @@ static const char* strlst_raw(StrList* ptr) {
 %token <symbol> ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
 
 %type <sym> compound_name
+%type <str> formatted_string
 
 %define parse.error custom
 %locations
 
 %glr-parser
-%expect-rr 1
+    // %expect-rr 1
 
 %precedence CAST
 %left OR
@@ -147,6 +160,18 @@ type_name
      * the most possible combinations. If the compound name gets selected as
      * the reference, then no harm is done.
      */
+compound_name
+    : SYMBOL %dprec 1 {
+            $$ = create_str_list();
+            add_str_list($$, create_string($1));
+            PTRACE("compound_name:create:%s", $1); //strlst_raw($1));
+        }
+    | compound_name DOT SYMBOL {
+            add_str_list($$, create_string($3));
+            PTRACE("compound_name:add:%s", $3); //strlst_raw($1));
+        }
+    ;
+
 compound_reference
     : compound_reference_element {
             PTRACE("compound_reference:compound_reference_element");
@@ -157,8 +182,8 @@ compound_reference
     ;
 
 compound_reference_element
-    : compound_name {
-            PTRACE("compound_reference_element:compound_reference:\"%s\"", strlst_raw($1));
+    : SYMBOL %dprec 2{
+            PTRACE("compound_reference_element:compound_reference:\"%s\"", $1);
         }
     | func_reference {
             PTRACE("compound_reference_element:func_reference");
@@ -168,24 +193,27 @@ compound_reference_element
         }
     ;
 
-compound_name
-    : SYMBOL {
-            PTRACE("compound_name:create:%s", strlst_raw($1));
-        }
-    | COMPOUND {
-            PTRACE("compound_name:add:%s", strlst_raw($1));
-        }
-    ;
+    // compound_name
+    // : SYMBOL {
+    //         PTRACE("compound_name:create:%s", strlst_raw($1));
+    //     }
+    // | COMPOUND {
+    //         PTRACE("compound_name:add:%s", strlst_raw($1));
+    //     }
+    // ;
 
 formatted_string
     : STRG_CONST {
-            PTRACE("formatted_string:STRG_CONST");
+            PTRACE("formatted_string:STRG_CONST: %s", $1);
+            $$ = $1;
         }
     | STRG_CONST OPAREN CPAREN {
-            PTRACE("formatted_string:STRG_CONST()");
+            PTRACE("formatted_string:STRG_CONST(): %s", $1);
+            $$ = $1;
         }
     | STRG_CONST OPAREN expr_list CPAREN {
-            PTRACE("formatted_string:STRG_CONST(expr_lst)");
+            PTRACE("formatted_string:STRG_CONST(expr_lst): %s", $1);
+            $$ = $1;
         }
     ;
 
@@ -223,13 +251,13 @@ import_statement
         }
     | IMPORT compound_name AS SYMBOL {
             PTRACE("import_statement:compound_name: %s AS %s",
-                    strlst_raw($2), strlst_raw($4));
+                    strlst_raw($2), $4);
         }
     ;
 
 namespace_definition
     : NAMESPACE SYMBOL OBLOCK namespace_block CBLOCK {
-            PTRACE("namespace_definition:%s", strlst_raw($2));
+            PTRACE("namespace_definition:%s", $2);
         }
     ;
 
@@ -268,7 +296,7 @@ namespace_element
 
 class_definition
     : CLASS SYMBOL class_parameters class_block {
-            PTRACE("class_definition:%s", strlst_raw($2));
+            PTRACE("class_definition:%s", $2);
         }
     ;
 
@@ -316,13 +344,13 @@ class_body_element
 
 var_declaration
     : type_name SYMBOL {
-            PTRACE("var_declaration:%s", strlst_raw($2));
+            PTRACE("var_declaration: \"%s\"", $2);
         }
     ;
 
 func_declaration
     : type_name SYMBOL func_decl_parms {
-            PTRACE("func_declaration:%s", strlst_raw($2));
+            PTRACE("func_declaration: \"%s\"", $2);
         }
     | CREATE func_decl_parms {
             PTRACE("func_declaration:CREATE");
@@ -352,7 +380,7 @@ func_decl_parms_list
 
 func_decl_parms_elem
     : type_name SYMBOL {
-            PTRACE("func_decl_parms_elem:%s", strlst_raw($2));
+            PTRACE("func_decl_parms_elem:%s", $2);
         }
     ;
 
@@ -469,18 +497,18 @@ expr_list
 
 member
     : SYMBOL COLON {
-            PTRACE("member:%s", strlst_raw($1));
+            PTRACE("member:%s", $1);
         }
     ;
 
 func_definition
     : type_name member SYMBOL func_decl_parms func_block {
-            PTRACE("func_definition:%s", strlst_raw($3));
+            PTRACE("func_definition:%s", $3);
         }
     ;
 
 ctor_definition
-    : member OPAREN func_decl_parms CPAREN func_block {
+    : member CREATE func_decl_parms func_block {
             PTRACE("ctor_definition");
         }
     ;
@@ -617,8 +645,8 @@ func_content_elem
     ;
 
 inline_block
-    : IBEGIN STRG_CONST IEND {
-            PTRACE("inline_block:%s", raw_string($2));
+    : INLINE formatted_string {
+            PTRACE("inline_block:%s", $2);
         }
     ;
 
@@ -660,7 +688,7 @@ trace_statement
 
 yield_statement
     : YIELD OPAREN SYMBOL CPAREN {
-            PTRACE("yield_statement:%s", strlst_raw($3));
+            PTRACE("yield_statement:%s", $3);
         }
     ;
 
@@ -906,12 +934,11 @@ symbol_name (yysymbol_kind_t yysymbol)
         (yysymbol == YYSYMBOL_OBRACE)? "[" :
         (yysymbol == YYSYMBOL_CBRACE)? "]" :
         (yysymbol == YYSYMBOL_SYMBOL)? "Symbol" :
-        (yysymbol == YYSYMBOL_COMPOUND)? "Compound Symbol" :
+        //(yysymbol == YYSYMBOL_COMPOUND)? "Compound Symbol" :
         (yysymbol == YYSYMBOL_STRG_CONST)? "String literal" :
         (yysymbol == YYSYMBOL_FLOAT_CONST)? "Float literal" :
         (yysymbol == YYSYMBOL_INT_CONST)? "Integer literal" :
-        (yysymbol == YYSYMBOL_IBEGIN)? "Begin inline block" :
-        (yysymbol == YYSYMBOL_IEND)? "End inline block" :
+        (yysymbol == YYSYMBOL_INLINE)? "Inline block" :
         (yysymbol == YYSYMBOL_UNSIGNED_CONST)? "Unsigned literal" : "UNKNOWN");
 }
 

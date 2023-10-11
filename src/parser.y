@@ -11,7 +11,7 @@
 #include "scanner.h"
 
 //ast_module_t* ast_module_root = NULL;
-
+/*
 static const char* strlst_raw(StrList* ptr) {
 
     Str* s = create_string(NULL);
@@ -26,7 +26,7 @@ static const char* strlst_raw(StrList* ptr) {
 
     return raw_string(s); // assumes using GC....
 }
-
+*/
 %}
 
 %union {
@@ -126,7 +126,7 @@ scope
 
 type_name
     : compound_name {
-            PTRACE("type_name:compound_name: %s", strlst_raw($1));
+            PTRACE("type_name:compound_name: %s", raw_string(join_str_list($1, ".")));
         }
     | FLOAT {
             PTRACE("type_name:FLOAT");
@@ -164,11 +164,11 @@ compound_name
     : SYMBOL %dprec 1 {
             $$ = create_str_list();
             add_str_list($$, create_string($1));
-            PTRACE("compound_name:create:%s", $1); //strlst_raw($1));
+            PTRACE("compound_name:create:%s", $1);
         }
     | compound_name DOT SYMBOL {
             add_str_list($$, create_string($3));
-            PTRACE("compound_name:add:%s", $3); //strlst_raw($1));
+            PTRACE("compound_name:add:%s", $3);
         }
     ;
 
@@ -193,15 +193,6 @@ compound_reference_element
         }
     ;
 
-    // compound_name
-    // : SYMBOL {
-    //         PTRACE("compound_name:create:%s", strlst_raw($1));
-    //     }
-    // | COMPOUND {
-    //         PTRACE("compound_name:add:%s", strlst_raw($1));
-    //     }
-    // ;
-
 formatted_string
     : STRG_CONST {
             PTRACE("formatted_string:STRG_CONST: %s", $1);
@@ -219,16 +210,16 @@ formatted_string
 
 func_reference
     : compound_name OPAREN CPAREN {
-            PTRACE("func_reference:%s()", strlst_raw($1));
+            PTRACE("func_reference:%s()", raw_string(join_str_list($1, ".")));
         }
     | compound_name OPAREN expr_list CPAREN {
-            PTRACE("func_reference:%s(expr_lst)", strlst_raw($1));
+            PTRACE("func_reference:%s(expr_lst)", raw_string(join_str_list($1, ".")));
         }
     ;
 
 array_reference
     : compound_name array_reference_list {
-            PTRACE("array_reference:%s[expr]", strlst_raw($1));
+            PTRACE("array_reference:%s[expr]", raw_string(join_str_list($1, ".")));
         }
     ;
 
@@ -247,11 +238,11 @@ array_reference_list
      */
 import_statement
     : IMPORT compound_name {
-            PTRACE("import_statement:compound_name: %s", strlst_raw($2));
+            PTRACE("import_statement:compound_name: %s", raw_string(join_str_list($2, ".")));
         }
     | IMPORT compound_name AS SYMBOL {
             PTRACE("import_statement:compound_name: %s AS %s",
-                    strlst_raw($2), $4);
+                    raw_string(join_str_list($2, ".")), $4);
         }
     ;
 
